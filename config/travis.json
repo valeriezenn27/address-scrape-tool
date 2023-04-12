@@ -1,11 +1,15 @@
 {
-	"url": "https://www.tad.org",
-	"search": "/property/search",
-	"searchParam": "arlington",
+	"url": "https://stage.travis.prodigycad.com",
+	"search": "/property-search",
+	"searchParam": [
+		"9705 Zion Way"
+	],
 	"maxResults": 10,
 	"selectors": {
-		"searchInputSelector": "input[name='search_string']",
-		"searchButtonSelector": "button.btn-square[type='submit']",
+		"searchInputSelector": [
+			"input[id='searchInput']"
+		],
+		"searchButtonSelector": "button[type='button']",
 		"tableRowSelector": "table tr",
 		"ownershipButtonSelector": "a[href='#tab4']",
 		"nextButtonSelector": ".m-0 button.btn-link"

@@ -24,15 +24,11 @@ const selectors = config.selectors;
   let results = [];
 
   try {
-      await page.goto(config.url + config.search);
+    await page.goto(config.url + config.search);
 
+    for (let i = 0; i < config.maxResults; i += 10) {
       // Type the street address and click search
-      const inputSelectors = selectors.searchInputSelector;
-      const searchParams = config.searchParam;
-       for (let i = 0; i < inputSelectors.length; i++) { 
-        await page.type(inputSelectors[i], searchParams[i]);
-       }
-
+      await page.type(selectors.searchInputSelector, config.searchParam);
       await page.click(selectors.searchButtonSelector);
       await page.waitForNavigation();
 
@@ -43,12 +39,7 @@ const selectors = config.selectors;
       // Wait for 2 seconds
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-    for (let i = 0; i < config.maxResults; i++) {
       const tableRows = $(selectors.tableRowSelector);
-      if(tableRows.length === 1){
-        break;
-      }
-
       for (let j = 1; j < tableRows.length; j++) {
         // Click the link and open in a new tab
         const link = $(tableRows[j]).find('a').attr('href');
@@ -88,15 +79,10 @@ const selectors = config.selectors;
         }
       }
 
-      if(tableRows.length === 1){
-        break;
-      }
-
       // Click the next button
       if (results.length < config.maxResults) {
         await page.click(selectors.nextButtonSelector);
         await page.waitForNavigation();
-        break;
       } else {
         break;
       }

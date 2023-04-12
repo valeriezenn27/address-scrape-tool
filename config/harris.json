@@ -1,12 +1,21 @@
 {
-	"url": "https://www.tad.org",
-	"search": "/property/search",
-	"searchParam": "arlington",
+	"url": "https://hcad.org",
+	"search": "/quick-search/",
+	"searchParam": [
+		"YEAR",
+		4719,
+		"Mierianne St"
+	],
 	"maxResults": 10,
 	"selectors": {
-		"searchInputSelector": "input[name='search_string']",
-		"searchButtonSelector": "button.btn-square[type='submit']",
-		"tableRowSelector": "table tr",
+		"searchByAddressButtonSelector": "s_addr",
+		"searchInputSelector": [
+			"select[name='TaxYear']",
+			"input[name='stnum']",
+			"input[name='stname']"
+		],
+		"searchButtonSelector": "input[type='submit']",
+		"tableRowSelector": ".justcenter table tr",
 		"ownershipButtonSelector": "a[href='#tab4']",
 		"nextButtonSelector": ".m-0 button.btn-link"
 	},

@@ -32,7 +32,6 @@ Here's an example of a configuration file for an county named "tad":
 
 4. Run the application using the following command, providing the county name as a command-line argument: 
 node app.js tad
-
 Replace "tad" with the name of the county for which you want to scrape details.
 
 5. The application will scrape the county details from the website and save the results in a CSV file as per the configuration provided. The scraped details will include the name and mailing address of the county.
