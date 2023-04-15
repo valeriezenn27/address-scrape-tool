@@ -1,39 +1,35 @@
-Realt Address Scraper
+# Web Scraping with Puppeteer
 
-This Node.js application allows you to scrape county details from a website based on the county name provided as a command-line argument.
+This is a Node.js script that uses Puppeteer, a powerful web scraping library, to scrape data from a website and save it to a CSV file.
 
-Usage
+## Prerequisites
 
-1. Clone the repository to your local machine.
-2. Install the required dependencies by running npm install.
-3. Create a configuration file for your county in the config directory. The configuration file should be in JSON format and contain the following properties:
-url: The base URL of the website to scrape.
-search: The search URL path to perform the county search.
-searchParam: The search parameter to pass to the website to search for the county.
-maxResults: The maximum number of results to scrape.
-selectors: An object containing CSS selectors for various elements on the website, such as search input, search button, table rows, ownership tab, etc.
-outputFile: The file name to save the scraped results in CSV format.
-Here's an example of a configuration file for an county named "tad":
+Before using this script, you need to have the following software installed on your machine:
 
-{
-	"url": "https://www.tad.org",
-	"search": "/property/search",
-	"searchParam": "arlington",
-	"maxResults": 10,
-	"selectors": {
-		"searchInputSelector": "input[name='search_string']",
-		"searchButtonSelector": "button.btn-square[type='submit']",
-		"tableRowSelector": "table tr",
-		"ownershipButtonSelector": "a[href='#tab4']",
-		"nextButtonSelector": ".m-0 button.btn-link"
-	},
-	"outputFile": "tad_output.csv"
-}
+- Node.js (https://nodejs.org/)
+- npm (Node.js package manager, usually installed along with Node.js)
 
-4. Run the application using the following command, providing the county name as a command-line argument: 
-node app.js tad
-Replace "tad" with the name of the county for which you want to scrape details.
+## Installation
 
-5. The application will scrape the county details from the website and save the results in a CSV file as per the configuration provided. The scraped details will include the name and mailing address of the county.
-6. Once the scraping is completed, you can find the results in the CSV file specified in the configuration.
-Note: Make sure to comply with the website's terms of service and usage policies while using this scraper. Always respect the website's robots.txt file and ensure that your scraping activity is legal and ethical.
+1. Clone this repository to your local machine.
+2. Install the required dependencies by running the following command in the project directory:
+`npm install`
+
+
+## Usage
+
+1. Modify the `config\{county}.json` file to configure the scraping process. You can specify the URL to scrape, addresses to search, max number of items to scrape, output path for CSV file, CSV header, and Puppeteer options.
+2. Run the script by running the following command in the project directory:
+`npm run {county}`
+3. The script will start scraping data from the specified website and save it to a CSV file in the output path specified in the `config\{county}.json` file.
+4. Once the scraping is completed, the CSV file will be generated in the specified output path, and a success message will be displayed in the console.
+
+Note: Please make sure to update the file paths and other configuration values in the `config\{county}.json` file according to your specific use case.
+
+## Contributing
+
+If you encounter any issues or have suggestions for improvements, feel free to open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

@@ -1,18 +1,22 @@
 {
-	"url": "https://www.tad.org",
-	"search": "/property/search",
-	"searchParam": [
-		"4801 Selkirk Dr"
+	"url": "https://www.tad.org/property/search",
+	"addresses": [
+		"Selkirk Dr",
+		"Waller St"
 	],
-	"maxResults": 10,
-	"selectors": {
-		"searchInputSelector": [
-			"input[name='search_string']"
-		],
-		"searchButtonSelector": "button.btn-square[type='submit']",
-		"tableRowSelector": "table tr",
-		"ownershipButtonSelector": "a[href='#tab4']",
-		"nextButtonSelector": ".m-0 button.btn-link"
-	},
-	"outputFile": "_output.csv"
+	"maxItems": 5,
+	"outputPath": "output/tarrant/",
+	"csvHeader": [
+		{
+			"id": "name",
+			"title": "Name"
+		},
+		{
+			"id": "mailingAddress",
+			"title": "Mailing Address"
+		}
+	],
+	"puppeteerOptions": {
+		"headless": true
+	}
 }
