@@ -1,23 +1,25 @@
 {
-	"url": "https://hcad.org",
-	"search": "/quick-search/",
-	"searchParam": [
-		"YEAR",
-		4719,
-		"Mierianne St"
+	"url": "https://hcad.org/quick-search/",
+	"queries": [
+		{
+			"taxYear": "2022",
+			"streetNumber": null,
+			"streetName": "Mierianne St"
+		}
 	],
-	"maxResults": 10,
-	"selectors": {
-		"searchByAddressButtonSelector": "s_addr",
-		"searchInputSelector": [
-			"select[name='TaxYear']",
-			"input[name='stnum']",
-			"input[name='stname']"
-		],
-		"searchButtonSelector": "input[type='submit']",
-		"tableRowSelector": ".justcenter table tr",
-		"ownershipButtonSelector": "a[href='#tab4']",
-		"nextButtonSelector": ".m-0 button.btn-link"
-	},
-	"outputFile": "_output.csv"
+	"maxItems": 5,
+	"outputPath": "output/harris/",
+	"csvHeader": [
+		{
+			"id": "name",
+			"title": "Name"
+		},
+		{
+			"id": "mailingAddress",
+			"title": "Mailing Address"
+		}
+	],
+	"puppeteerOptions": {
+		"headless": false
+	}
 }

@@ -41,7 +41,7 @@ const startScraping = async () => {
 
       let itemsCounter = 1;
       for (let j = 0; j < rows.length; j++) {
-        if (itemsCounter >= config.maxItems-1) {
+        if (itemsCounter >= config.maxItems - 1) {
           continue;
         }
         console.log(`-----ITEM COUNTER: ${itemsCounter}-----`);
@@ -79,7 +79,7 @@ const startScraping = async () => {
         await detailsPage.close();
       }
 
-      if (itemsCounter >= config.maxItems-1) {
+      if (itemsCounter >= config.maxItems - 1) {
         console.log(`Max item count reached for address : ${config.addresses[i]}`);
         break;
       }

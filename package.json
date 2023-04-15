@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "csv-writer": "^1.6.0",
+    "fs": "^0.0.1-security",
     "puppeteer": "^19.8.5"
   }
 }

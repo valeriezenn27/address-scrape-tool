@@ -1,8 +1,7 @@
 {
 	"url": "https://www.tad.org/property/search",
 	"addresses": [
-		"Selkirk Dr",
-		"Waller St"
+		"Selkirk Dr"
 	],
 	"maxItems": 5,
 	"outputPath": "output/tarrant/",
