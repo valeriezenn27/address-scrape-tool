@@ -1,22 +1,40 @@
 {
 	"url": "https://www.dallascad.org/SearchAddr.aspx",
 	"addresses": [
-		"Ranier Cir",
-		"Bruton Rd"
-	],
-	"maxItems": 5,
-	"outputPath": "output/tarrant/",
-	"csvHeader": [
 		{
-			"id": "name",
-			"title": "Name"
+			"addressNumber": null,
+			"direction": null,
+			"streetName": "JKAHSJKHAS",
+			"isResidential": true,
+			"isCommercial": true,
+			"isBpp": true
 		},
 		{
-			"id": "mailingAddress",
-			"title": "Mailing Address"
+			"addressNumber": null,
+			"direction": null,
+			"streetName": "Rockwall",
+			"isResidential": true,
+			"isCommercial": true,
+			"isBpp": true
+		},
+		{
+			"addressNumber": 106,
+			"direction": null,
+			"streetName": "Dallas",
+			"isResidential": true,
+			"isCommercial": true,
+			"isBpp": true
+		},
+		{
+			"addressNumber": null,
+			"direction": null,
+			"streetName": "Ranier",
+			"isResidential": true,
+			"isCommercial": true,
+			"isBpp": true
 		}
 	],
-	"puppeteerOptions": {
-		"headless": true
-	}
+	"maxItems": 10,
+	"outputSeparateFiles": true,
+	"outputPath": "output/dallas/"
 }

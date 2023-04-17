@@ -1,114 +1,162 @@
 const puppeteer = require('puppeteer');
-const createCsvWriter = require('csv-writer').createObjectCsvWriter;
-const config = require('../config/dallas.json');
+const {
+  getSettings,
+  exportCsv,
+  log,
+  logCounter,
+  getDateText
+} = require('../helpers');
 
-const currentDate = new Date();
-const dateText = `${currentDate.getFullYear()}-${currentDate.getMonth() + 1}-${currentDate.getDate()}_${currentDate.getHours()}-${currentDate.getMinutes()}-${currentDate.getSeconds()}`;
-const path = `${config.outputPath}${dateText}.csv`;
-
-// Create CSV writer to write the scraped data
-const csvWriter = createCsvWriter({
-  path: path,
-  header: config.csvHeader
-});
-
-// Function to start the scraping process
-const startScraping = async () => {
-  console.clear();
-  console.log(`Scraping started for URL : ${config.url}`);
-  const browser = await puppeteer.launch(config.puppeteerOptions);
+async function scrapeDallas(county) {
+  const config = getSettings(county);
+  const folder = getDateText();
+  log(`Scraping started for URL : ${config.url}`, 'y');
+  const browser = await puppeteer.launch({
+    headless: false
+  });
   const page = await browser.newPage();
-  await page.goto(config.url);
 
-  let allData = [];
-
-  // Input search queries
-  const searchInputSelector = 'input[name="search_string"]'
+  let consolidatedData = [];
   for (let i = 0; i < config.addresses.length; i++) {
-    console.log(`Scraping for address : ${config.addresses[i]}`);
-    await page.type(searchInputSelector, config.addresses[i]);
-    await page.click('button.btn-square[type="submit"]');
-    await page.waitForSelector('table');
+    let allData = [];
+    await page.goto(config.url);
+    const address = config.addresses[i];
+    log(`Scraping for :`);
+    if (address.addressNumber !== null) {
+      log(`ADDRESS NUMBER : ${address.addressNumber}`, 'y');
+    }
+    if (address.direction !== null) {
+      log(`DIRECTION : ${address.direction}`, 'y');
+    }
+    if (address.streetName !== null) {
+      log(`STREET NAME : ${address.streetName}`, 'y');
+    }
 
-    while (true) {
-      // Extract data from table rows
-      const rows = await page.$$('tbody tr');
+    if (address.addressNumber !== null) {
+      await page.type('#txtAddrNum', address.addressNumber.toString(), {
+        delay: 100
+      }); // Input the address number
+    }
+    if (address.direction !== null) {
+      await page.select('#listStDir', address.direction); // Input the year
+    }
+    await page.type('#txtStName', address.streetName); // Input the address number
+    if (!address.isResidential) {
+      const checkbox = await page.$('#AcctTypeCheckList1_chkAcctType_0'); // Residential checkbox
+      await checkbox.click();
+    }
+    if (!address.isResidential) {
+      const checkbox = await page.$('#AcctTypeCheckList1_chkAcctType_1'); // Commercial checkbox
+      await checkbox.click();
+    }
+    if (!address.isResidential) {
+      const checkbox = await page.$('#AcctTypeCheckList1_chkAcctType_2'); // BPP checkbox
+      await checkbox.click();
+    }
+    await page.click('input#cmdSubmit'); // Click on the search button
 
-      if (rows.length === 0) {
-        console.log('No more data found.');
-        break;
+    // Wait for the results table to load
+    const resultsTable = await page.$('#SearchResults1_dgResults');
+    if (!resultsTable) {
+      log(`No data found.`, 'y');
+    } else {
+      let itemsCounter = 0;
+      let links = [];
+      while (true) {
+        const rows = await page.$$('table#SearchResults1_dgResults tbody tr');
+        // Extract data from table rows
+        for (let index = 2; index < rows.length - 3; index++) {
+          if (links.length === config.maxItems) {
+            break;
+          }
+          const row = rows[index];
+          const href = await row.$eval('td a', a => a.href); // Get the href in row
+          links.push(href); // Hold all links in a variable
+        }
+
+        if (links.length === config.maxItems) {
+          break;
+        }
+
+        // Click the next button to go to the next page
+        const firstRow = rows[0];
+        const nextButton = await firstRow.$('a');
+        if (nextButton) {
+          await nextButton.click();
+          await page.waitForNavigation({
+            timeout: 60000
+          });
+        } else {
+          break;
+        }
       }
 
-      let itemsCounter = 0;
-      for (let j = 0; j < rows.length; j++) {
-        if (itemsCounter == config.maxItems) {
-          continue;
-        }
-        const row = rows[j];
-        const href = await row.$eval('td a', a => a.href); // Get the href in column
-        const detailsPage = await page.browser().newPage(); // Open a new page
-        await detailsPage.goto(href); // Go to the new page
+      const numBatches = Math.ceil(links.length / 20);
+      for (let i = 0; i < numBatches; i++) {
+        const startIdx = i * 20;
+        const endIdx = Math.min(links.length, (i + 1) * 20);
+        const batchLinks = links.slice(startIdx, endIdx);
 
-        // Click Ownership tab
-        const ownershipTabSelector = 'a[href="#tab4"]';
-        await detailsPage.waitForSelector(ownershipTabSelector);
-        await detailsPage.click(ownershipTabSelector);
+        const promises = batchLinks.map(async (link) => {
+          const tabPage = await browser.newPage();
+          await tabPage.goto(link);
 
-        // Scrape data from ownership table rows
-        const info = await detailsPage.$$eval('table.table-primary tbody tr', (rows) => {
-          return rows.map(row => {
-            const cells = Array.from(row.querySelectorAll('td'));
-            const name = cells[0].innerText.trim();
-            const mailingAddress = cells.slice(1).map(cell => cell.innerText.trim()).join(' ');
+          // Scrape data from record
+          const info = await tabPage.evaluate(() => {
+            const spanElement = document.querySelector('#lblOwner');
+            const name = spanElement.nextSibling.textContent;
+            const element = document.querySelector('a[name="MultiOwner"]');
+            const mailingAddress = `${element.previousElementSibling.previousElementSibling.previousSibling.textContent} ${element.previousElementSibling.previousSibling.textContent.replace(/\n/g, '').trim()}`;
             return {
               name,
               mailingAddress
             };
           });
+
+          // Push the scraped data from the current tab to the main array
+          itemsCounter++;
+          allData.push(info);
+          consolidatedData.push(info);
+          logCounter(info, itemsCounter);
+
+          await tabPage.close();
         });
 
-        itemsCounter++;
-        console.log(`-----ITEM COUNTER: ${itemsCounter}-----`);
-        // Store info in the data object
-        info.forEach((item, index) => {
-          allData.push(item);
-          console.log(item);
-        });
-
-        // Close details page tab
-        await detailsPage.close();
+        await Promise.all(promises);
       }
+
 
       if (itemsCounter == config.maxItems) {
-        console.log(`Max item count reached for address : ${config.addresses[i]}`);
-        break;
+        log(`Max item count (${config.maxItems}) reached.`, 'y');
+      } else {
+        log(`No more data found.`, 'y');
       }
 
-      // Click the next button to go to the next page
-      const nextButton = await page.$('.m-0 button.btn-link');
-      if (!nextButton) {
-        console.log('No next button found.');
-        break;
+      if (config.outputSeparateFiles) {
+        // Save and export to CSV file
+        let fileName = '';
+        if (address.addressNumber !== null) {
+          fileName += `${address.addressNumber}`;
+        }
+        if (address.direction !== null) {
+          fileName += `_${address.direction}`;
+        }
+        if (address.streetName !== null) {
+          fileName += `_${address.streetName}`;
+        }
+        fileName += '.csv';
+        await exportCsv(config.outputPath, folder, fileName, allData);
       }
-
-      await nextButton.click();
-      await page.waitForNavigation();
     }
-
-    // Clear the search inputs for the next query
-    await page.$eval(searchInputSelector, input => input.value = '');
   }
 
-  // Write the scraped data to a CSV file
-  await csvWriter.writeRecords(allData)
-    .then(() => {
-      console.log(`Scraping complete. Data has been written to ${path} file.`);
-    })
-    .catch(err => {
-      console.error('Error writing data to CSV:', err);
-    });
-
+  if (!config.outputSeparateFiles) {
+    // Save and export to CSV file
+    const fileName = `${folder}.csv`
+    await exportCsv(config.outputPath, null, fileName, consolidatedData);
+  }
+  // Close the browser
   await browser.close();
-};
+}
 
-startScraping();
+module.exports = scrapeDallas;

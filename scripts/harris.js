@@ -43,7 +43,7 @@ async function scrapeHarris(county) {
     if (address.streetNumber !== null) {
       await searchFormIframeContent.type('form[name="Real_addr"] input[name="stnum"]', address.streetNumber.toString(), {
         delay: 100
-      });
+      }); // Input the address number
     }
     if (address.streetName !== null) {
       await searchFormIframeContent.type('form[name="Real_addr"] input[name="stname"]', address.streetName); // Input the address
@@ -150,7 +150,7 @@ async function scrapeHarris(county) {
 
   if (!config.outputSeparateFiles) {
     // Save and export to CSV file
-    const fileName = `${getDateText()}.csv`
+    const fileName = `${folder}.csv`
     await exportCsv(config.outputPath, null, fileName, consolidatedData);
   }
   // Close the browser

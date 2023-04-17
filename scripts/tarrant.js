@@ -28,7 +28,7 @@ async function scrapeTarrant(county) {
     if (address !== null) {
       log(`STREET NAME : ${address}`, 'y');
     }
-    await page.type('input[name="search_string"]', address); // Input the addtress
+    await page.type('input[name="search_string"]', address); // Input the address
     await page.click('button.btn-square[type="submit"]'); // Click on the search button
     // Wait for the results table to load
     await page.waitForSelector('table');
@@ -47,7 +47,6 @@ async function scrapeTarrant(county) {
         }
         const row = rows[index];
         const href = await row.$eval('td a', a => a.href); // Get the href in row
-
         links.push(href); // Hold all links in a variable
       }
 
@@ -123,7 +122,7 @@ async function scrapeTarrant(county) {
 
   if (!config.outputSeparateFiles) {
     // Save and export to CSV file
-    const fileName = `${getDateText()}.csv`
+    const fileName = `${folder}.csv`
     await exportCsv(config.outputPath, null, fileName, consolidatedData);
   }
 
