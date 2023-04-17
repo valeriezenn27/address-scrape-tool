@@ -20,6 +20,6 @@
 		}
 	],
 	"puppeteerOptions": {
-		"headless": false
+		"headless": true
 	}
 }

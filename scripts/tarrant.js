@@ -39,12 +39,11 @@ const startScraping = async () => {
         break;
       }
 
-      let itemsCounter = 1;
+      let itemsCounter = 0;
       for (let j = 0; j < rows.length; j++) {
-        if (itemsCounter >= config.maxItems - 1) {
+        if (itemsCounter == config.maxItems) {
           continue;
         }
-        console.log(`-----ITEM COUNTER: ${itemsCounter}-----`);
         const row = rows[j];
         const href = await row.$eval('td a', a => a.href); // Get the href in column
         const detailsPage = await page.browser().newPage(); // Open a new page
@@ -68,18 +67,19 @@ const startScraping = async () => {
           });
         });
 
+        itemsCounter++;
+        console.log(`-----ITEM COUNTER: ${itemsCounter}-----`);
         // Store info in the data object
         info.forEach((item, index) => {
           allData.push(item);
           console.log(item);
         });
 
-        itemsCounter++;
         // Close details page tab
         await detailsPage.close();
       }
 
-      if (itemsCounter >= config.maxItems - 1) {
+      if (itemsCounter == config.maxItems) {
         console.log(`Max item count reached for address : ${config.addresses[i]}`);
         break;
       }

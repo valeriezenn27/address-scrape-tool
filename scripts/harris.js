@@ -60,14 +60,14 @@ const csvWriter = createCsvWriter({
       console.log('View All button not found.');
     }
 
-    let itemsCounter = 1;
+    let itemsCounter = 0;
     let links = [];
     while (true) {
       await quickframe.waitForSelector('table table tr');
 
       const rows = await quickframe.$$('table table tr');
       for (let j = 0; j < rows.length; j++) {
-        if (itemsCounter >= config.maxItems - 1) {
+        if (itemsCounter == config.maxItems) {
           continue;
         }
         const row = rows[j];
@@ -90,35 +90,33 @@ const csvWriter = createCsvWriter({
 
       for (let l = 0; l < links.length; l++) {
         const link = links[l];
-        if (itemsCounter >= config.maxItems - 1) {
+        if (itemsCounter == config.maxItems) {
           continue;
         }
-        console.log(`-----ITEM COUNTER: ${itemsCounter}-----`);
         const detailsPage = await page.browser().newPage(); // Open a new page
         await detailsPage.goto(`https://public.hcad.org/records/${link}`); // Go to the new page
 
         const data = await detailsPage.evaluate(() => {
-          console.log('XXXXX!!!');
           const outerTable = document.querySelector('table .data th');
           const tableData = outerTable.innerText.split('<br>');
           const items = tableData[0].split('\n');
           const name = items[0].trim();
-          const mailingAddress = items.join(' ').trim();
+          const mailingAddress = `${items[1]} ${items[2]}`;
           return {
             name,
             mailingAddress
           };
         });
 
-
+        itemsCounter++;
+        console.log(`-----ITEM COUNTER: ${itemsCounter}-----`);
         console.log(data);
         allData.push(data);
-        itemsCounter++;
 
         await detailsPage.close();
       }
 
-      if (itemsCounter >= config.maxItems - 1) {
+      if (itemsCounter == config.maxItems) {
         console.log(`Max item count reached for query : ${query.taxYear} - ${query.streetNumber} - ${query.streetName}`);
         break;
       }
