@@ -10,10 +10,10 @@
 		{
 			"taxYear": "2022",
 			"streetNumber": null,
-			"streetName": "Lake June Rd"
+			"streetName": "Lake Aquilla Ln"
 		}
 	],
 	"maxItems": 10,
-	"outputSeparateFiles": true,
+	"outputSeparateFiles": false,
 	"outputPath": "output/harris/"
 }

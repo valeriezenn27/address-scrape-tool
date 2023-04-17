@@ -1,11 +1,12 @@
 {
 	"url": "https://www.tad.org/property/search",
+	"recordLink": "https://public.hcad.org/records/",
 	"addresses": [
-		"4801 Selkirk Dr",
+		"Selkirk Dr",
 		"Hurstview Dr",
 		"Wisteria St"
 	],
-	"maxItems": 10,
-	"outputSeparateFiles": true,
+	"maxItems": 20,
+	"outputSeparateFiles": false,
 	"outputPath": "output/tarrant/"
 }

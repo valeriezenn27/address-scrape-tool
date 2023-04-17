@@ -9,6 +9,7 @@ const {
 
 async function scrapeHarris(county) {
   const config = getSettings(county);
+  const folder = getDateText();
   log(`Scraping started for URL : ${config.url}`, 'y');
   const browser = await puppeteer.launch({
     headless: true
@@ -62,41 +63,44 @@ async function scrapeHarris(county) {
     }
     await quickframe.waitForSelector('table table tr');
 
-    while (true) {
-      const rows = await quickframe.$$('table table tr');
-      if (rows.length === 0) {
-        log(`No data found.`, 'y');
+    const rows = await quickframe.$$('table table tr');
+    if (rows.length === 0) {
+      log(`No data found.`, 'y');
+    }
+
+    let itemsCounter = 0;
+    let links = [];
+    // Extract data from table rows
+    for (let index = 0; index < rows.length; index++) {
+      if (links.length == config.maxItems) {
         break;
       }
-
-      let itemsCounter = 0;
-      let links = [];
-      // Extract data from table rows
-      for (let index = 0; index < rows.length; index++) {
-        if (link.length == config.maxItems) {
-          break;
-        }
-        const row = rows[index];
-        const link = await row.$('span.button');
-        if (link) {
-          const onclickValue = await link.evaluate((link) => {
-            return link.getAttribute('onclick'); // Get the onclick attribute in row
-          });
-          var startIndex = onclickValue.indexOf('=') + 1;
-          var endIndex = onclickValue.length;
-          let value = '';
-          value = onclickValue.slice(startIndex, endIndex).replace(/^'|'$/g, '');
-          links.push(value); // Hold all links in a variable
-        }
+      const row = rows[index];
+      const link = await row.$('span.button');
+      if (link) {
+        const onclickValue = await link.evaluate((link) => {
+          return link.getAttribute('onclick'); // Get the onclick attribute in row
+        });
+        var startIndex = onclickValue.indexOf('=') + 1;
+        var endIndex = onclickValue.length;
+        let value = '';
+        value = onclickValue.slice(startIndex, endIndex).replace(/^'|'$/g, '');
+        links.push(`${config.recordLink}${value}`); // Hold all links in a variable
       }
+    }
 
-      for (let l = 0; l < links.length; l++) {
-        const link = links[l];
-        const detailsPage = await page.browser().newPage(); // Open a new page
-        await detailsPage.goto(`${config.recordLink}${link}`); // Go to the new page
+    const numBatches = Math.ceil(links.length / 20);
+    for (let i = 0; i < numBatches; i++) {
+      const startIdx = i * 20;
+      const endIdx = Math.min(links.length, (i + 1) * 20);
+      const batchLinks = links.slice(startIdx, endIdx);
+
+      const promises = batchLinks.map(async (link) => {
+        const tabPage = await browser.newPage();
+        await tabPage.goto(link);
 
         // Scrape data from record
-        const info = await detailsPage.evaluate(() => {
+        const info = await tabPage.evaluate(() => {
           const outerTable = document.querySelector('table .data th');
           const tableData = outerTable.innerText.split('<br>');
           const items = tableData[0].split('\n');
@@ -108,27 +112,27 @@ async function scrapeHarris(county) {
           };
         });
 
+        // Push the scraped data from the current tab to the main array
         itemsCounter++;
         allData.push(info);
         consolidatedData.push(info);
         logCounter(info, itemsCounter);
 
-        // Close details page tab
-        await detailsPage.close();
-      }
+        await tabPage.close();
+      });
 
-      if (itemsCounter == config.maxItems) {
-        log(`Max item count (${config.maxItems}) reached.`, 'y');
-        break;
-      }
+      await Promise.all(promises);
+    }
 
+
+    if (itemsCounter == config.maxItems) {
+      log(`Max item count (${config.maxItems}) reached.`, 'y');
+    } else {
       log(`No more data found.`, 'y');
-      break;
     }
 
     if (config.outputSeparateFiles) {
       // Save and export to CSV file
-      const folder = getDateText();
       let fileName = '';
       if (address.taxYear !== null) {
         fileName += `${address.taxYear}`;

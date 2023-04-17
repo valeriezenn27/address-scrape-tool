@@ -12,9 +12,12 @@ async function scrapeTarrant(county) {
   const folder = getDateText();
   log(`Scraping started for URL : ${config.url}`, 'y');
   const browser = await puppeteer.launch({
-    headless: true
+    headless: false,
+    timeout: 60000
   });
-  const page = await browser.newPage();
+  const page = await browser.newPage({
+    timeout: 60000
+  });
 
   let consolidatedData = [];
   for (let i = 0; i < config.addresses.length; i++) {
@@ -30,52 +33,25 @@ async function scrapeTarrant(county) {
     // Wait for the results table to load
     await page.waitForSelector('table');
 
+    let itemsCounter = 0;
+    let links = [];
     while (true) {
       const rows = await page.$$('tbody tr');
       if (rows.length === 0) {
         log(`No data found.`, 'y');
-        break;
       }
-
-      let itemsCounter = 0;
       // Extract data from table rows
       for (let index = 0; index < rows.length; index++) {
-        if (itemsCounter === config.maxItems) {
+        if (links.length === config.maxItems) {
           break;
         }
         const row = rows[index];
         const href = await row.$eval('td a', a => a.href); // Get the href in row
-        const detailsPage = await page.browser().newPage(); // Open a new page
-        await detailsPage.goto(href); // Go to the new page
 
-        // Click Ownership tab
-        const ownershipTabSelector = 'a[href="#tab4"]';
-        await detailsPage.waitForSelector(ownershipTabSelector);
-        await detailsPage.click(ownershipTabSelector);
-
-        // Scrape data from ownership table rows
-        let info = await detailsPage.$$eval('table.table-primary tbody tr', (rows) => {
-          const [firstRow] = rows; // Destructuring to get the first row
-          const cells = Array.from(firstRow.querySelectorAll('td'));
-          const name = cells[0].innerText.trim();
-          const mailingAddress = cells.slice(1).map(cell => cell.innerText.trim()).join(' ');
-          return {
-            name,
-            mailingAddress
-          };
-        });
-
-        itemsCounter++;
-        allData.push(info);
-        consolidatedData.push(info);
-        logCounter(info, itemsCounter);
-
-        // Close details page tab
-        await detailsPage.close();
+        links.push(href); // Hold all links in a variable
       }
 
-      if (itemsCounter === config.maxItems) {
-        log(`Max item count (${config.maxItems}) reached.`, 'y');
+      if (links.length === config.maxItems) {
         break;
       }
 
@@ -83,8 +59,59 @@ async function scrapeTarrant(county) {
       const nextButton = await page.$('.m-0 button.btn-link');
       if (nextButton) {
         await nextButton.click();
+        await page.waitForNavigation({
+          timeout: 60000
+        });
       }
-      await page.waitForNavigation();
+    }
+
+    const numBatches = Math.ceil(links.length / 20);
+    for (let i = 0; i < numBatches; i++) {
+      const startIdx = i * 20;
+      const endIdx = Math.min(links.length, (i + 1) * 20);
+      const batchLinks = links.slice(startIdx, endIdx);
+
+      try {
+        const promises = batchLinks.map(async (link) => {
+          const tabPage = await browser.newPage();
+          await tabPage.goto(link);
+
+          const ownershipTabSelector = 'a[href="#tab4"]';
+          await tabPage.waitForSelector(ownershipTabSelector);
+          await tabPage.click(ownershipTabSelector);
+
+          // Scrape data from ownership table rows
+          const info = await tabPage.$$eval('table.table-primary tbody tr', (rows) => {
+            const [firstRow] = rows; // Destructuring to get the first row
+            const cells = Array.from(firstRow.querySelectorAll('td'));
+            const name = cells[0].innerText.trim();
+            const mailingAddress = cells.slice(1).map(cell => cell.innerText.trim()).join(' ');
+            return {
+              name,
+              mailingAddress
+            };
+          });
+
+          // Push the scraped data from the current tab to the main array
+          itemsCounter++;
+          allData.push(info);
+          consolidatedData.push(info);
+          logCounter(info, itemsCounter);
+
+          await tabPage.close();
+        });
+      } catch (error) {
+        log(error.message, 'r');
+      };
+
+      await Promise.all(promises);
+    }
+
+    if (itemsCounter === config.maxItems) {
+      log(`Max item count (${config.maxItems}) reached.`, 'y');
+    } else {
+      log(`No more data found.`, 'y');
+      log(`Item count (${itemsCounter}).`, 'y');
     }
 
     if (config.outputSeparateFiles) {
