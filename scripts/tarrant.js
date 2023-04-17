@@ -16,6 +16,7 @@ async function scrapeTarrant(county) {
   });
   const page = await browser.newPage();
 
+  let consolidatedData = [];
   for (let i = 0; i < config.addresses.length; i++) {
     let allData = [];
     await page.goto(config.url);
@@ -24,26 +25,26 @@ async function scrapeTarrant(county) {
     if (address !== null) {
       log(`STREET NAME : ${address}`, 'y');
     }
-    await page.type('input[name="search_string"]', address);
-    await page.click('button.btn-square[type="submit"]');
+    await page.type('input[name="search_string"]', address); // Input the addtress
+    await page.click('button.btn-square[type="submit"]'); // Click on the search button
+    // Wait for the results table to load
     await page.waitForSelector('table');
 
     while (true) {
-      // Extract data from table rows
       const rows = await page.$$('tbody tr');
-
       if (rows.length === 0) {
-        log(`No more data found.`, 'y');
+        log(`No data found.`, 'y');
         break;
       }
 
       let itemsCounter = 0;
-      for (let j = 0; j < rows.length; j++) {
+      // Extract data from table rows
+      for (let index = 0; index < rows.length; index++) {
         if (itemsCounter === config.maxItems) {
-          continue;
+          break;
         }
-        const row = rows[j];
-        const href = await row.$eval('td a', a => a.href); // Get the href in column
+        const row = rows[index];
+        const href = await row.$eval('td a', a => a.href); // Get the href in row
         const detailsPage = await page.browser().newPage(); // Open a new page
         await detailsPage.goto(href); // Go to the new page
 
@@ -66,6 +67,7 @@ async function scrapeTarrant(county) {
 
         itemsCounter++;
         allData.push(info);
+        consolidatedData.push(info);
         logCounter(info, itemsCounter);
 
         // Close details page tab
@@ -95,7 +97,7 @@ async function scrapeTarrant(county) {
   if (!config.outputSeparateFiles) {
     // Save and export to CSV file
     const fileName = `${getDateText()}.csv`
-    await exportCsv(config.outputPath, null, fileName, allData);
+    await exportCsv(config.outputPath, null, fileName, consolidatedData);
   }
 
   // Close the browser

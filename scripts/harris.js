@@ -15,6 +15,7 @@ async function scrapeHarris(county) {
   });
   const page = await browser.newPage();
 
+  let consolidatedData = [];
   for (let i = 0; i < config.addresses.length; i++) {
     let allData = [];
     await page.goto(config.url);
@@ -41,7 +42,7 @@ async function scrapeHarris(county) {
     if (address.streetNumber !== null) {
       await searchFormIframeContent.type('form[name="Real_addr"] input[name="stnum"]', address.streetNumber.toString(), {
         delay: 100
-      }); // Input the street number as string with delay
+      });
     }
     if (address.streetName !== null) {
       await searchFormIframeContent.type('form[name="Real_addr"] input[name="stname"]', address.streetName); // Input the address
@@ -59,40 +60,42 @@ async function scrapeHarris(county) {
     if (viewAllButton) {
       await quickframe.click(viewAllButton);
     }
+    await quickframe.waitForSelector('table table tr');
 
-    let itemsCounter = 0;
-    let links = [];
     while (true) {
-      await quickframe.waitForSelector('table table tr');
-
       const rows = await quickframe.$$('table table tr');
-      for (let j = 0; j < rows.length; j++) {
-        if (itemsCounter == config.maxItems) {
-          continue;
+      if (rows.length === 0) {
+        log(`No data found.`, 'y');
+        break;
+      }
+
+      let itemsCounter = 0;
+      let links = [];
+      // Extract data from table rows
+      for (let index = 0; index < rows.length; index++) {
+        if (link.length == config.maxItems) {
+          break;
         }
-        const row = rows[j];
-        // Click on the link within the row to open details page
+        const row = rows[index];
         const link = await row.$('span.button');
         if (link) {
           const onclickValue = await link.evaluate((link) => {
-            return link.getAttribute('onclick');
+            return link.getAttribute('onclick'); // Get the onclick attribute in row
           });
           var startIndex = onclickValue.indexOf('=') + 1;
           var endIndex = onclickValue.length;
           let value = '';
           value = onclickValue.slice(startIndex, endIndex).replace(/^'|'$/g, '');
-          links.push(value);
+          links.push(value); // Hold all links in a variable
         }
       }
 
       for (let l = 0; l < links.length; l++) {
         const link = links[l];
-        if (itemsCounter == config.maxItems) {
-          continue;
-        }
         const detailsPage = await page.browser().newPage(); // Open a new page
         await detailsPage.goto(`${config.recordLink}${link}`); // Go to the new page
 
+        // Scrape data from record
         const info = await detailsPage.evaluate(() => {
           const outerTable = document.querySelector('table .data th');
           const tableData = outerTable.innerText.split('<br>');
@@ -107,6 +110,7 @@ async function scrapeHarris(county) {
 
         itemsCounter++;
         allData.push(info);
+        consolidatedData.push(info);
         logCounter(info, itemsCounter);
 
         // Close details page tab
@@ -117,6 +121,9 @@ async function scrapeHarris(county) {
         log(`Max item count (${config.maxItems}) reached.`, 'y');
         break;
       }
+
+      log(`No more data found.`, 'y');
+      break;
     }
 
     if (config.outputSeparateFiles) {
@@ -134,14 +141,13 @@ async function scrapeHarris(county) {
       }
       fileName += '.csv';
       await exportCsv(config.outputPath, folder, fileName, allData);
-      break;
     }
   }
 
   if (!config.outputSeparateFiles) {
     // Save and export to CSV file
     const fileName = `${getDateText()}.csv`
-    await exportCsv(config.outputPath, null, fileName, allData);
+    await exportCsv(config.outputPath, null, fileName, consolidatedData);
   }
   // Close the browser
   await browser.close();

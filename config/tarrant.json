@@ -2,7 +2,8 @@
 	"url": "https://www.tad.org/property/search",
 	"addresses": [
 		"4801 Selkirk Dr",
-		"Hurstview Dr"
+		"Hurstview Dr",
+		"Wisteria St"
 	],
 	"maxItems": 10,
 	"outputSeparateFiles": true,
