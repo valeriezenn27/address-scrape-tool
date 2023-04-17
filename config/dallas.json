@@ -1,20 +1,22 @@
 {
-	"url": "https://hcad.org",
-	"search": "/quick-search/",
-	"searchParam": [
-		716,
-		"Ranier Cir"
+	"url": "https://www.dallascad.org/SearchAddr.aspx",
+	"addresses": [
+		"Ranier Cir",
+		"Bruton Rd"
 	],
-	"maxResults": 10,
-	"selectors": {
-		"searchInputSelector": [
-			"input[name='txtAddrNum']",
-			"input[name='txtStName']"
-		],
-		"searchButtonSelector": "input[type='submit']",
-		"tableRowSelector": ".justcenter table tr",
-		"ownershipButtonSelector": "a[href='#tab4']",
-		"nextButtonSelector": ".m-0 button.btn-link"
-	},
-	"outputFile": "_output.csv"
+	"maxItems": 5,
+	"outputPath": "output/tarrant/",
+	"csvHeader": [
+		{
+			"id": "name",
+			"title": "Name"
+		},
+		{
+			"id": "mailingAddress",
+			"title": "Mailing Address"
+		}
+	],
+	"puppeteerOptions": {
+		"headless": true
+	}
 }

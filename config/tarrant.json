@@ -1,21 +1,10 @@
 {
 	"url": "https://www.tad.org/property/search",
 	"addresses": [
-		"Selkirk Dr"
+		"4801 Selkirk Dr",
+		"Hurstview Dr"
 	],
-	"maxItems": 5,
-	"outputPath": "output/tarrant/",
-	"csvHeader": [
-		{
-			"id": "name",
-			"title": "Name"
-		},
-		{
-			"id": "mailingAddress",
-			"title": "Mailing Address"
-		}
-	],
-	"puppeteerOptions": {
-		"headless": true
-	}
+	"maxItems": 10,
+	"outputSeparateFiles": true,
+	"outputPath": "output/tarrant/"
 }

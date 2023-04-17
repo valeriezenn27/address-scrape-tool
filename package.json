@@ -4,10 +4,7 @@
   "description": "An address scrapping tool",
   "main": "app.js",
   "scripts": {
-    "tarrant": "node scripts/tarrant.js tarrant",
-    "harris": "node scripts/harris.js harris",
-    "dallas": "node scripts/dallas.js dallas",
-    "travis": "node scripts/travis.js travis"
+    "start": "node app.js"
   },
   "author": "Valerie Zenn Magbanua",
   "license": "ISC",

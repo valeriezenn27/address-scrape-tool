@@ -1,25 +1,19 @@
 {
 	"url": "https://hcad.org/quick-search/",
-	"queries": [
+	"recordLink": "https://public.hcad.org/records/",
+	"addresses": [
+		{
+			"taxYear": "2022",
+			"streetNumber": 4719,
+			"streetName": "Mierianne St"
+		},
 		{
 			"taxYear": "2022",
 			"streetNumber": null,
-			"streetName": "Mierianne St"
+			"streetName": "Lake June Rd"
 		}
 	],
-	"maxItems": 5,
-	"outputPath": "output/harris/",
-	"csvHeader": [
-		{
-			"id": "name",
-			"title": "Name"
-		},
-		{
-			"id": "mailingAddress",
-			"title": "Mailing Address"
-		}
-	],
-	"puppeteerOptions": {
-		"headless": true
-	}
+	"maxItems": 10,
+	"outputSeparateFiles": true,
+	"outputPath": "output/harris/"
 }
