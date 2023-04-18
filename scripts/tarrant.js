@@ -13,15 +13,13 @@ async function scrapeTarrant(county) {
   const browser = await puppeteer.launch({
     headless: true
   });
-  const page = await browser.newPage({
-    timeout: 60000
-  });
+  const page = await browser.newPage();
   log(`Scraping started for URL : ${config.url}`, 'y');
 
   let consolidatedData = [];
   for (let i = 0; i < config.addresses.length; i++) {
     await page.goto(config.url, {
-      timeout: 60000
+      timeout: 120000
     });
     const address = config.addresses[i];
     await page.type('input[name="search_string"]', address); // Input the address
@@ -39,7 +37,7 @@ async function scrapeTarrant(county) {
     let stopLoop = false; // Initialize stopLoop flag
     while (true) {
       const rows = await page.$$('tbody tr');
-      if (row.length === 0) {
+      if (rows.length === 0) {
         break;
       }
       // Extract data from table rows
@@ -55,7 +53,7 @@ async function scrapeTarrant(county) {
             await page.waitForTimeout(500); // wait for .5 second before continuing
             // Open in new tab
             await tabPage.goto(href, {
-              timeout: 60000
+              timeout: 120000
             });
             // Click ownership section
             const ownershipTabSelector = 'a[href="#tab4"]';
