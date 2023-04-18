@@ -3,38 +3,18 @@
 	"addresses": [
 		{
 			"addressNumber": null,
-			"direction": null,
-			"streetName": "JKAHSJKHAS",
-			"isResidential": true,
-			"isCommercial": true,
-			"isBpp": true
-		},
-		{
-			"addressNumber": null,
-			"direction": null,
-			"streetName": "Rockwall",
-			"isResidential": true,
-			"isCommercial": true,
-			"isBpp": true
+			"streetName": "Garland"
 		},
 		{
 			"addressNumber": 106,
-			"direction": null,
-			"streetName": "Dallas",
-			"isResidential": true,
-			"isCommercial": true,
-			"isBpp": true
+			"streetName": "Dallas"
 		},
 		{
 			"addressNumber": null,
-			"direction": null,
-			"streetName": "Ranier",
-			"isResidential": true,
-			"isCommercial": true,
-			"isBpp": true
+			"streetName": "Cedar Hill"
 		}
 	],
-	"maxItems": 10,
+	"maxItems": 20,
 	"outputSeparateFiles": false,
 	"outputPath": "output/dallas/"
 }

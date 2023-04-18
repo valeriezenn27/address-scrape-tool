@@ -12,36 +12,26 @@ async function scrapeTravis(county) {
   const config = getSettings(county);
   const folder = getDateText();
   const url = `${config.url}${config.searhURl}`;
-  log(`Scraping started for URL : ${url}`, 'y');
   const browser = await puppeteer.launch({
-    headless: true
+    headless: false
   });
   const page = await browser.newPage();
+  log(`Scraping started for URL : ${url}`, 'y');
 
   let consolidatedData = [];
   for (let i = 0; i < config.addresses.length; i++) {
-    let allData = [];
+
     await page.goto(url);
     const address = config.addresses[i];
-    log(`Scraping for :`);
-    if (address.year !== null) {
-      log(`YEAR : ${address.year}`, 'y');
-    }
-    if (address.streetName !== null) {
-      log(`STREET NAME : ${address.streetName}`, 'y');
-    }
-
     const searchInput = 'input#searchInput';
     await page.waitForSelector(searchInput);
     await page.type(searchInput, address.streetName); // Input the address number
     if (address.year !== null) {
       const year = address.year.toString();
-
       // Find the dropdown button and click it
       const dropdownButton = await page.$('.sc-RefOD.iammZP > div:nth-child(3) .MuiSelect-root.MuiSelect-select.MuiSelect-selectMenu.MuiInputBase-input.MuiInput-input');
       await page.waitForTimeout(1000); // wait for 1 second
       await dropdownButton.click();
-
       // Find the dropdown items and click the desired item
       const dropdownItems = await page.$$('.MuiButtonBase-root.MuiListItem-root.MuiMenuItem-root.MuiMenuItem-gutters.MuiListItem-gutters.MuiListItem-button');
       for (const item of dropdownItems) {
@@ -52,101 +42,99 @@ async function scrapeTravis(county) {
         }
       }
     }
-
-    await page.waitForTimeout(1000); // wait for 1 second
+    await page.waitForTimeout(500); // wait for .5 second
     const searchButton = 'button.MuiButtonBase-root.MuiIconButton-root';
-    await page.click(searchButton); // Click on the search button
+    // Click on the search button
+    await page.click(searchButton);
+    log(`Scraping for :`);
+    if (address.year !== null) {
+      log(`YEAR : ${address.year}`, 'y');
+    }
+    if (address.streetName !== null) {
+      log(`ADDRESS : ${address.streetName}`, 'y');
+    }
     await page.waitForNetworkIdle();
     await page.waitForSelector('.ag-center-cols-container');
 
     // Wait for the results table to load
     const rowSelector = '.ag-center-cols-container div[role="row"]';
     const resultsTable = await page.$(rowSelector);
-    if (!resultsTable) {
-      log(`No data found.`, 'y');
-    } else {
+    if (resultsTable) {
+      let allData = [];
       let itemsCounter = 0;
-      let links = [];
+      const tabPromises = [];
+      let stopLoop = false; // Initialize stopLoop flag
       while (true) {
         await page.waitForSelector(rowSelector);
-        const rows = await page.$$(rowSelector);
         // Extract data from table rows
-        for (let index = 0; index < rows.length; index++) {
-          if (links.length === config.maxItems) {
+        const rows = await page.$$(rowSelector);
+        for (let index = 0; index < rows.length && !stopLoop; index++) {
+          if (allData.length === config.maxItems) {
             break;
           }
           const row = rows[index];
           const id = await row.$eval('div[col-id="pid"]', a => a.textContent); // Get the href in row
           const detailsUrl = format(`${config.url}${config.detailsUrl}`, id, address.year);
-          links.push(detailsUrl); // Hold all links in a variable
+          const tabPagePromise = (async () => {
+            try {
+              const tabPage = await browser.newPage();
+              // Open in new tab
+              await tabPage.goto(detailsUrl);
+              await tabPage.waitForNetworkIdle();
+              // Scrape data from record
+              const info = await tabPage.evaluate(() => {
+                const items = document.querySelectorAll('p.sc-cEvuZC.filVkB');
+                const name = items[0].textContent;
+                const mailingAddress = items[2].textContent;
+                if (name === '' && mailingAddress === '') {
+                  return null;
+                }
+                return {
+                  name,
+                  mailingAddress
+                };
+              });
+              // Push the scraped data from the current tab to the main array
+              if (info !== null) {
+                allData.push(info);
+                consolidatedData.push(info);
+                itemsCounter++;
+                logCounter(info, itemsCounter);
+              }
+              // Close new tab
+              await tabPage.close();
+            } catch (error) {
+              console.error(error.message);
+              await page.waitForTimeout(10000); // wait for 10 second before continuing
+            }
+          })();
+          tabPromises.push(tabPagePromise);
+          if (tabPromises.length === config.maxItems) {
+            stopLoop = true; // Set stopLoop flag to true
+          }
+          if (tabPromises.length >= rows.length) {
+            await Promise.race(tabPromises); // Wait for the first tab to complete
+            tabPromises.shift(); // Remove the completed promise from the array
+          }
         }
+        await Promise.all(tabPromises); // Wait for any remaining tabs to complete
 
-        if (links.length === config.maxItems) {
+        if (allData.length === config.maxItems) {
+          log(`Max item count (${config.maxItems}) reached.`, 'y');
           break;
         }
 
         // Click the next button to go to the next page
-        // Find the pagination component
         const pagination = await page.$('.MuiFlatPagination-root');
         // Check if the last button is disabled
         const lastButton = await pagination.$('button:last-child');
         const isDisabled = await lastButton.evaluate((el) => el.disabled);
         if (!isDisabled) {
-          // Click the last button
           await lastButton.click();
-          await page.waitForNavigation({
-            timeout: 60000
-          });
+          await page.waitForNetworkIdle();
         } else {
           break;
         }
-      }
-
-      const numBatches = Math.ceil(links.length / 5);
-      for (let i = 0; i < numBatches; i++) {
-        const startIdx = i * 5;
-        const endIdx = Math.min(links.length, (i + 1) * 5);
-        const batchLinks = links.slice(startIdx, endIdx);
-
-        const promises = batchLinks.map(async (link) => {
-          const tabPage = await browser.newPage();
-          await tabPage.goto(link);
-          await tabPage.waitForNetworkIdle();
-          // Scrape data from record
-          const info = await tabPage.evaluate(() => {
-            const items = document.querySelectorAll('p.sc-cEvuZC.filVkB');
-            const name = items[0].textContent;
-            const mailingAddress = items[2].textContent;
-
-            if (name === '' && mailingAddress === '') {
-              return null;
-            }
-
-            return {
-              name,
-              mailingAddress
-            };
-          });
-
-          // Push the scraped data from the current tab to the main array
-          if (info !== null) {
-            itemsCounter++;
-            allData.push(info);
-            consolidatedData.push(info);
-            logCounter(info, itemsCounter);
-          }
-
-          await tabPage.close();
-        });
-
-        await Promise.all(promises);
-      }
-
-
-      if (itemsCounter == config.maxItems) {
-        log(`Max item count (${config.maxItems}) reached.`, 'y');
-      } else {
-        log(`No more data found.`, 'y');
       }
 
       if (config.outputSeparateFiles && allData.length > 0) {

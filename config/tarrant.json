@@ -1,9 +1,9 @@
 {
 	"url": "https://www.tad.org/property/search",
 	"addresses": [
-		"Selkirk Dr",
-		"Hurstview Dr",
-		"Wisteria St"
+		"2478 FORT WORTH ST",
+		"Arlington",
+		"Watauga"
 	],
 	"maxItems": 20,
 	"outputSeparateFiles": false,

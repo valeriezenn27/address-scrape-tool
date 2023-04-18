@@ -5,14 +5,14 @@
 	"addresses": [
 		{
 			"year": 2022,
-			"streetName": "9705 Zion Way"
+			"streetName": "Pointe View Dr"
 		},
 		{
 			"year": 2022,
-			"streetName": "Pointe View Dr"
+			"streetName": "9705 Zion Way"
 		}
 	],
-	"maxItems": 25,
+	"maxItems": 20,
 	"outputSeparateFiles": false,
 	"outputPath": "output/travis/"
 }

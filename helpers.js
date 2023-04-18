@@ -39,7 +39,7 @@ async function exportCsv(path, folder, fileName, data) {
 
 		await csvWriter.writeRecords(data)
 			.then(() => {
-				log(`Scraping completed. Data has been written to file path:`);
+				log(`Scraping completed. Exported CSV file path:`);
 				log(`${outputPath}`, 'y');
 				return true;
 			})
