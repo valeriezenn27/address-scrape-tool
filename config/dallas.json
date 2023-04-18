@@ -35,6 +35,6 @@
 		}
 	],
 	"maxItems": 10,
-	"outputSeparateFiles": true,
+	"outputSeparateFiles": false,
 	"outputPath": "output/dallas/"
 }

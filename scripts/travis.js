@@ -14,7 +14,7 @@ async function scrapeTravis(county) {
   const url = `${config.url}${config.searhURl}`;
   log(`Scraping started for URL : ${url}`, 'y');
   const browser = await puppeteer.launch({
-    headless: false
+    headless: true
   });
   const page = await browser.newPage();
 
@@ -89,7 +89,7 @@ async function scrapeTravis(county) {
         // Find the pagination component
         const pagination = await page.$('.MuiFlatPagination-root');
         // Check if the last button is disabled
-        const lastButton = await pagination.$('button');
+        const lastButton = await pagination.$('button:last-child');
         const isDisabled = await lastButton.evaluate((el) => el.disabled);
         if (!isDisabled) {
           // Click the last button
@@ -102,10 +102,10 @@ async function scrapeTravis(county) {
         }
       }
 
-      const numBatches = Math.ceil(links.length / 20);
+      const numBatches = Math.ceil(links.length / 5);
       for (let i = 0; i < numBatches; i++) {
-        const startIdx = i * 20;
-        const endIdx = Math.min(links.length, (i + 1) * 20);
+        const startIdx = i * 5;
+        const endIdx = Math.min(links.length, (i + 1) * 5);
         const batchLinks = links.slice(startIdx, endIdx);
 
         const promises = batchLinks.map(async (link) => {

@@ -91,10 +91,10 @@ async function scrapeHarris(county) {
       }
     }
 
-    const numBatches = Math.ceil(links.length / 20);
+    const numBatches = Math.ceil(links.length / 5);
     for (let i = 0; i < numBatches; i++) {
-      const startIdx = i * 20;
-      const endIdx = Math.min(links.length, (i + 1) * 20);
+      const startIdx = i * 5;
+      const endIdx = Math.min(links.length, (i + 1) * 5);
       const batchLinks = links.slice(startIdx, endIdx);
 
       const promises = batchLinks.map(async (link) => {
@@ -144,13 +144,13 @@ async function scrapeHarris(county) {
       // Save and export to CSV file
       let fileName = '';
       if (address.taxYear !== null) {
-        fileName += `${address.taxYear}`;
+        fileName += `${address.taxYear}_`;
       }
       if (address.streetNumber !== null) {
-        fileName += `_${address.streetNumber}`;
+        fileName += `${address.streetNumber}_`;
       }
       if (address.streetName !== null) {
-        fileName += `_${address.streetName}`;
+        fileName += `${address.streetName}`;
       }
       fileName += '.csv';
       await exportCsv(config.outputPath, folder, fileName, allData);

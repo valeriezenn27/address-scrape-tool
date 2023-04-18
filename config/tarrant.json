@@ -6,6 +6,6 @@
 		"Wisteria St"
 	],
 	"maxItems": 20,
-	"outputSeparateFiles": true,
+	"outputSeparateFiles": false,
 	"outputPath": "output/tarrant/"
 }

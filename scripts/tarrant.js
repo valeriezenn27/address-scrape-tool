@@ -12,7 +12,7 @@ async function scrapeTarrant(county) {
   const folder = getDateText();
   log(`Scraping started for URL : ${config.url}`, 'y');
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     timeout: 60000
   });
   const page = await browser.newPage({
@@ -64,10 +64,10 @@ async function scrapeTarrant(county) {
       }
     }
 
-    const numBatches = Math.ceil(links.length / 20);
+    const numBatches = Math.ceil(links.length / 5);
     for (let i = 0; i < numBatches; i++) {
-      const startIdx = i * 20;
-      const endIdx = Math.min(links.length, (i + 1) * 20);
+      const startIdx = i * 5;
+      const endIdx = Math.min(links.length, (i + 1) * 5);
       const batchLinks = links.slice(startIdx, endIdx);
 
       try {
