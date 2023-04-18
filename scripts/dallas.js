@@ -39,15 +39,13 @@ async function scrapeDallas(county) {
 
     let allData = [];
     let itemsCounter = 0;
-    // let links = [];
+    const tabPromises = [];
+    let stopLoop = false; // Initialize stopLoop flag
     while (true) {
       // Extract data from table rows
       const rows = await page.$$('table#SearchResults1_dgResults tbody tr');
-      const tabPromises = [];
-      let stopLoop = false; // Initialize stopLoop flag
       for (let index = 2; index < rows.length - 1 && !stopLoop; index++) {
         if (allData.length === config.maxItems) {
-          stopLoop = true; // Set stopLoop flag to true
           break;
         }
         const row = rows[index];
@@ -55,8 +53,11 @@ async function scrapeDallas(county) {
         const tabPagePromise = (async () => {
           try {
             const tabPage = await browser.newPage();
+            await page.waitForTimeout(500); // wait for .5 second before continuing
             // Open in new tab
-            await tabPage.goto(href);
+            await tabPage.goto(href, {
+              timeout: 60000
+            });
             // Scrape data from record
             const info = await tabPage.evaluate(() => {
               const spanElement = document.querySelector('#lblOwner');
@@ -76,11 +77,14 @@ async function scrapeDallas(county) {
             // Close new tab
             await tabPage.close();
           } catch (error) {
-            console.error(error.message);
+            console.error(error);
             await page.waitForTimeout(10000); // wait for 10 second before continuing
           }
         })();
         tabPromises.push(tabPagePromise);
+        if (tabPromises.length === config.maxItems) {
+          stopLoop = true; // Set stopLoop flag to true
+        }
         if (tabPromises.length >= rows.length - 1) {
           await Promise.race(tabPromises); // Wait for the first tab to complete
           tabPromises.shift(); // Remove the completed promise from the array
@@ -97,7 +101,7 @@ async function scrapeDallas(county) {
       const nextButton = await firstRow.$('a');
       if (nextButton) {
         await nextButton.click();
-        await page.waitForNavigation();
+        await page.waitForNetworkIdle();
       } else {
         break;
       }
