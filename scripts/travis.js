@@ -74,12 +74,15 @@ async function scrapeTravis(county) {
           }
           const row = rows[index];
           const id = await row.$eval('div[col-id="pid"]', a => a.textContent); // Get the href in row
-          const detailsUrl = format(`${config.url}${config.detailsUrl}`, id, address.year);
+          const href = format(`${config.url}${config.detailsUrl}`, id, address.year);
           const tabPagePromise = (async () => {
             try {
               const tabPage = await browser.newPage();
+              await page.waitForTimeout(500); // wait for .5 second before continuing
               // Open in new tab
-              await tabPage.goto(detailsUrl);
+              await tabPage.goto(href, {
+                timeout: 60000
+              });
               await tabPage.waitForNetworkIdle();
               // Scrape data from record
               const info = await tabPage.evaluate(() => {

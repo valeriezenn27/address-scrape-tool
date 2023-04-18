@@ -67,12 +67,14 @@ async function scrapeHarris(county) {
 
     let allData = [];
     let itemsCounter = 0;
+    const tabPromises = [];
+    let stopLoop = false; // Initialize stopLoop flag
     // Extract data from table rows
     const rows = await quickframe.$$('table table tr');
-    if (rows.length === 0) {
-      log(`No data found.`, 'y');
-    }
-    for (let index = 0; index < rows.length; index++) {
+    for (let index = 0; index < rows.length && !stopLoop; index++) {
+      if (allData.length === config.maxItems) {
+        break;
+      }
       const row = rows[index];
       const link = await row.$('span.button');
       if (link) {
@@ -85,42 +87,53 @@ async function scrapeHarris(county) {
         let value = '';
         value = onclickValue.slice(startIndex, endIndex).replace(/^'|'$/g, '');
         const href = format(config.detailsUrl, value);
-        try {
-          // Open in new tab
-          const tabPage = await browser.newPage();
-          await tabPage.goto(href);
-          // Scrape data from record
-          const info = await tabPage.evaluate(() => {
-            const outerTable = document.querySelector('table .data th');
-            const tableData = outerTable.innerText.split('<br>');
-            const items = tableData[0].split('\n');
-            const name = items[0].trim();
-            const lastTwoNonEmpty = items.filter(str => str.trim() !== "").slice(-2);
-            const mailingAddress = `${lastTwoNonEmpty[0]} ${lastTwoNonEmpty[1]}`;
-            return {
-              name,
-              mailingAddress
-            };
-          });
+        const tabPagePromise = (async () => {
+          try {
+            // Open in new tab
+            const tabPage = await browser.newPage();
+            await page.waitForTimeout(500); // wait for .5 second before continuing
+            // Open in new tab
+            await tabPage.goto(href, {
+              timeout: 60000
+            });
+            // Scrape data from record
+            const info = await tabPage.evaluate(() => {
+              const outerTable = document.querySelector('table .data th');
+              const tableData = outerTable.innerText.split('<br>');
+              const items = tableData[0].split('\n');
+              const name = items[0].trim();
+              const lastTwoNonEmpty = items.filter(str => str.trim() !== "").slice(-2);
+              const mailingAddress = `${lastTwoNonEmpty[0]} ${lastTwoNonEmpty[1]}`;
+              return {
+                name,
+                mailingAddress
+              };
+            });
 
-          // Push the scraped data from the current tab to the main array
-          allData.push(info);
-          consolidatedData.push(info);
-          itemsCounter++;
-          logCounter(info, itemsCounter);
-          // Close new tab
-          await tabPage.close();
-
-          if (allData.length == config.maxItems) {
-            log(`Max item count (${config.maxItems}) reached.`, 'y');
-            break;
+            // Push the scraped data from the current tab to the main array
+            allData.push(info);
+            consolidatedData.push(info);
+            itemsCounter++;
+            logCounter(info, itemsCounter);
+            // Close new tab
+            await tabPage.close();
+          } catch (error) {
+            console.error(error);
+            await page.waitForTimeout(10000); // wait for 10 second before continuing
           }
-        } catch (error) {
-          console.error(error);
-          await page.waitForTimeout(10000); // wait for 10 second before continuing
+        })();
+        tabPromises.push(tabPagePromise);
+        if (tabPromises.length === config.maxItems) {
+          stopLoop = true; // Set stopLoop flag to true
+        }
+        if (tabPromises.length >= rows.length - 1) {
+          await Promise.race(tabPromises); // Wait for the first tab to complete
+          tabPromises.shift(); // Remove the completed promise from the array
         }
       }
     }
+    await Promise.all(tabPromises); // Wait for any remaining tabs to complete
+
 
     if (config.outputSeparateFiles && allData.length > 0) {
       // Save and export to CSV file
