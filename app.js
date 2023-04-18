@@ -4,6 +4,7 @@ const {
 const scrapeTarrant = require('./scripts/tarrant');
 const scrapeHarris = require('./scripts/harris');
 const scrapeDallas = require('./scripts/dallas');
+const scrapeTravis = require('./scripts/travis');
 
 const county = process.argv[2];
 
@@ -21,6 +22,10 @@ async function startScraping() {
 
 	if (county.indexOf('dallas') > -1) {
 		await scrapeDallas(county);
+	}
+
+	if (county.indexOf('travis') > -1) {
+		await scrapeTravis(county);
 	}
 }
 

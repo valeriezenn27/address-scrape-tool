@@ -4,13 +4,15 @@ const {
   exportCsv,
   log,
   logCounter,
-  getDateText
+  getDateText,
+  format
 } = require('../helpers');
 
 async function scrapeHarris(county) {
   const config = getSettings(county);
   const folder = getDateText();
-  log(`Scraping started for URL : ${config.url}`, 'y');
+  const url = `${config.url}${config.searhURl}`;
+  log(`Scraping started for URL : ${url}`, 'y');
   const browser = await puppeteer.launch({
     headless: true
   });
@@ -19,7 +21,7 @@ async function scrapeHarris(county) {
   let consolidatedData = [];
   for (let i = 0; i < config.addresses.length; i++) {
     let allData = [];
-    await page.goto(config.url);
+    await page.goto(url);
     const address = config.addresses[i];
     await page.waitForSelector('iframe'); // Wait for the iframe to load
     // Switch to the first iframe containing the search form
@@ -85,7 +87,7 @@ async function scrapeHarris(county) {
         var endIndex = onclickValue.length;
         let value = '';
         value = onclickValue.slice(startIndex, endIndex).replace(/^'|'$/g, '');
-        links.push(`${config.recordLink}${value}`); // Hold all links in a variable
+        links.push(format(config.detailsUrl, value)); // Hold all links in a variable
       }
     }
 
@@ -96,29 +98,36 @@ async function scrapeHarris(county) {
       const batchLinks = links.slice(startIdx, endIdx);
 
       const promises = batchLinks.map(async (link) => {
-        const tabPage = await browser.newPage();
-        await tabPage.goto(link);
+        try {
+          const tabPage = await browser.newPage();
+          await tabPage.goto(link);
 
-        // Scrape data from record
-        const info = await tabPage.evaluate(() => {
-          const outerTable = document.querySelector('table .data th');
-          const tableData = outerTable.innerText.split('<br>');
-          const items = tableData[0].split('\n');
-          const name = items[0].trim();
-          const mailingAddress = `${items[1]} ${items[2]}`;
-          return {
-            name,
-            mailingAddress
-          };
-        });
+          // Scrape data from record
+          const info = await tabPage.evaluate(() => {
+            const outerTable = document.querySelector('table .data th');
+            const tableData = outerTable.innerText.split('<br>');
+            const items = tableData[0].split('\n');
+            const name = items[0].trim();
+            const lastTwoNonEmpty = items.filter(str => str.trim() !== "").slice(-2);
+            const mailingAddress = `${lastTwoNonEmpty[0]} ${lastTwoNonEmpty[1]}`;
+            console.log(name);
+            console.log(mailingAddress);
+            return {
+              name,
+              mailingAddress
+            };
+          });
 
-        // Push the scraped data from the current tab to the main array
-        itemsCounter++;
-        allData.push(info);
-        consolidatedData.push(info);
-        logCounter(info, itemsCounter);
+          // Push the scraped data from the current tab to the main array
+          itemsCounter++;
+          allData.push(info);
+          consolidatedData.push(info);
+          logCounter(info, itemsCounter);
 
-        await tabPage.close();
+          await tabPage.close();
+        } catch (error) {
+          log(`Error processing this row.`);
+        }
       });
 
       await Promise.all(promises);

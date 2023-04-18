@@ -1,6 +1,7 @@
 {
-	"url": "https://hcad.org/quick-search/",
-	"recordLink": "https://public.hcad.org/records/",
+	"url": "https://hcad.org/",
+	"searhURl": "quick-search/",
+	"detailsUrl": "https://public.hcad.org/records/{0}",
 	"addresses": [
 		{
 			"taxYear": "2022",

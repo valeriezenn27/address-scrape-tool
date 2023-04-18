@@ -1,18 +1,22 @@
 {
-	"url": "https://stage.travis.prodigycad.com",
-	"search": "/property-search",
-	"searchParam": [
-		"9705 Zion Way"
+	"url": "https://stage.travis.prodigycad.com/",
+	"searhURl": "property-search",
+	"detailsUrl": "property-detail/{0}/{1}",
+	"addresses": [
+		{
+			"year": 2022,
+			"streetName": "JKAHSJKHAS"
+		},
+		{
+			"year": 2022,
+			"streetName": "Zion Way"
+		},
+		{
+			"year": 2022,
+			"streetName": "travis"
+		}
 	],
-	"maxResults": 10,
-	"selectors": {
-		"searchInputSelector": [
-			"input[id='searchInput']"
-		],
-		"searchButtonSelector": "button[type='button']",
-		"tableRowSelector": "table tr",
-		"ownershipButtonSelector": "a[href='#tab4']",
-		"nextButtonSelector": ".m-0 button.btn-link"
-	},
-	"outputFile": "_output.csv"
+	"maxItems": 25,
+	"outputSeparateFiles": true,
+	"outputPath": "output/travis/"
 }

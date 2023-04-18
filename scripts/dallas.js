@@ -136,13 +136,13 @@ async function scrapeDallas(county) {
         // Save and export to CSV file
         let fileName = '';
         if (address.addressNumber !== null) {
-          fileName += `${address.addressNumber}`;
+          fileName += `${address.addressNumber}_`;
         }
         if (address.direction !== null) {
-          fileName += `_${address.direction}`;
+          fileName += `${address.direction}_`;
         }
         if (address.streetName !== null) {
-          fileName += `_${address.streetName}`;
+          fileName += `${address.streetName}`;
         }
         fileName += '.csv';
         await exportCsv(config.outputPath, folder, fileName, allData);

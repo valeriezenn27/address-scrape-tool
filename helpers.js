@@ -88,10 +88,17 @@ function getDateText() {
 	return dateText;
 }
 
+function format(str, ...args) {
+	return str.replace(/{(\d+)}/g, (match, index) => {
+		return args[index] !== undefined ? args[index] : match;
+	});
+}
+
 module.exports = {
 	getSettings,
 	exportCsv,
 	log,
 	logCounter,
-	getDateText
+	getDateText,
+	format
 };
