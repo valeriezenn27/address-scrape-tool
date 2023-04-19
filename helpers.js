@@ -1,5 +1,6 @@
 const fs = require('fs');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const xlsx = require('xlsx');
 
 function getSettings(county) {
 	try {
@@ -9,23 +10,10 @@ function getSettings(county) {
 	}
 }
 
-async function exportCsv(path, folder, fileName, data) {
+async function exportCsv(path, data) {
 	try {
-		let outputPath = path;
-		if (folder !== null) {
-			outputPath += folder;
-			// Check if the folder already exists
-			if (!fs.existsSync(outputPath)) {
-				// If the folder does not exist, create it
-				fs.mkdirSync(outputPath);
-				log(`Folder created successfully at ${outputPath}`);
-			}
-			outputPath += '/';
-		}
-		outputPath += fileName;
-
 		const csvWriter = createCsvWriter({
-			path: outputPath,
+			path: path,
 			header: [{
 					"id": "name",
 					"title": "Name"
@@ -94,11 +82,30 @@ function format(str, ...args) {
 	});
 }
 
+function getAddressess(path) {
+	// Load the workbook
+	const workbook = xlsx.readFile(path);
+	// Get the last sheet name
+	const lastSheetName = workbook.SheetNames[workbook.SheetNames.length - 1];
+	// Get the last sheet
+	const lastSheet = workbook.Sheets[lastSheetName];
+	// Define the column you want to retrieve values from
+	const column = 'B';
+	// Get all cell addresses in the column
+	const columnAddresses = Object.keys(lastSheet)
+		.filter((cellAddress) => cellAddress.startsWith(column))
+		.sort();
+	// Extract the values from the column
+	const columnValues = columnAddresses.map((cellAddress) => lastSheet[cellAddress].v);
+	return columnValues;
+}
+
 module.exports = {
 	getSettings,
 	exportCsv,
 	log,
 	logCounter,
 	getDateText,
-	format
+	format,
+	getAddressess
 };

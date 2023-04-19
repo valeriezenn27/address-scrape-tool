@@ -1,20 +1,5 @@
 {
 	"url": "https://www.dallascad.org/SearchAddr.aspx",
-	"addresses": [
-		{
-			"addressNumber": null,
-			"streetName": "Garland"
-		},
-		{
-			"addressNumber": 106,
-			"streetName": "Dallas"
-		},
-		{
-			"addressNumber": null,
-			"streetName": "Cedar Hill"
-		}
-	],
-	"maxItems": 20,
-	"outputSeparateFiles": false,
-	"outputPath": "output/dallas/"
+	"filePath": "files/DALLAS COUNTY.xlsx",
+	"outputPath": "output/{0}_{1}.csv"
 }
