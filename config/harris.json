@@ -1,20 +1,6 @@
 {
-	"url": "https://hcad.org/",
-	"searhURl": "quick-search/",
-	"detailsUrl": "https://public.hcad.org/records/{0}",
-	"addresses": [
-		{
-			"taxYear": "2023",
-			"streetNumber": 4719,
-			"streetName": "Mierianne St"
-		},
-		{
-			"taxYear": "2022",
-			"streetNumber": null,
-			"streetName": "Lake Aquilla Ln"
-		}
-	],
-	"maxItems": 20,
-	"outputSeparateFiles": false,
-	"outputPath": "output/harris/"
+	"url": "https://hcad.org/quick-search/",
+	"detailsUrl": "https: //public.hcad.org/records/{0}",
+	"filePath": "files/HARRIS COUNTY.xlsx",
+	"outputPath": "output/{0}_{1}.csv"
 }

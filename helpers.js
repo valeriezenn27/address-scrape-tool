@@ -1,6 +1,7 @@
 const fs = require('fs');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const xlsx = require('xlsx');
+// const postal = require('node-postal');
 
 function getSettings(county) {
 	try {
@@ -15,12 +16,22 @@ async function exportCsv(path, data) {
 		const csvWriter = createCsvWriter({
 			path: path,
 			header: [{
+					"id": "address",
+					"title": "STREET ADDRESS"
+				}, {
+					"id": "city",
+					"title": "CITY STATE"
+				}, {
+					"id": "zip",
+					"title": "ZIP"
+				},
+				{
 					"id": "name",
-					"title": "Name"
+					"title": "OWNER NAME"
 				},
 				{
 					"id": "mailingAddress",
-					"title": "Mailing Address"
+					"title": "OWNER MAILING ADDRESS"
 				}
 			]
 		});
@@ -28,7 +39,7 @@ async function exportCsv(path, data) {
 		await csvWriter.writeRecords(data)
 			.then(() => {
 				log(`Scraping completed. Exported CSV file path:`);
-				log(`${outputPath}`, 'y');
+				log(`${path}`, 'y');
 				return true;
 			})
 			.catch((error) => {
@@ -41,7 +52,7 @@ async function exportCsv(path, data) {
 	}
 }
 
-function log(text, color) {
+function log(text, color = null) {
 	const RESET = '\x1b[0m';
 	const RED = '\x1b[31m';
 	const GREEN = '\x1b[32m';
@@ -55,10 +66,10 @@ function log(text, color) {
 	}
 	if (color === 'y') {
 		console.log(YELLOW, text, RESET);
-	} else {
+	}
+	if (color === null) {
 		console.log(text);
 	}
-
 	return true;
 }
 
@@ -82,23 +93,46 @@ function format(str, ...args) {
 	});
 }
 
-function getAddressess(path) {
-	// Load the workbook
+function getAddresses(path) {
+	// read the excel file
 	const workbook = xlsx.readFile(path);
-	// Get the last sheet name
+
+	// get the last sheet
 	const lastSheetName = workbook.SheetNames[workbook.SheetNames.length - 1];
-	// Get the last sheet
-	const lastSheet = workbook.Sheets[lastSheetName];
-	// Define the column you want to retrieve values from
-	const column = 'B';
-	// Get all cell addresses in the column
-	const columnAddresses = Object.keys(lastSheet)
-		.filter((cellAddress) => cellAddress.startsWith(column))
-		.sort();
-	// Extract the values from the column
-	const columnValues = columnAddresses.map((cellAddress) => lastSheet[cellAddress].v);
-	return columnValues;
+	const sheet = workbook.Sheets[lastSheetName];
+
+	// convert the sheet to an array of objects
+	const data = xlsx.utils.sheet_to_json(sheet);
+
+	return data;
 }
+
+function isMatchPattern(address, city) {
+	const suffixPattern = /\b(?: dr| ct| rd| sr| cir| ln| pkwy| ave| st| pl| way)\b/gi;
+	const addressParts = address.split(suffixPattern);
+	const cleanedAddress = addressParts[0];
+	const pattern = /^(\d+)\s+(N |S |E |W |NE |NW |SE |SW )?\s*(\w.*)$/i;
+	const matchResult = cleanedAddress.match(pattern);
+	if (matchResult) {
+		const [_, streetNumber, direction, streetName] = cleanedAddress.match(pattern);
+		const cityParts = city.split(',');
+		const cityName = cityParts[0].trim();
+		return {
+			streetNumber,
+			direction,
+			streetName,
+			cityName
+		}
+	} else {
+		return false;
+	}
+}
+
+// function getZip(address) {
+// 	const parsed = postal.parseAddress(address);
+// 	const zip = parsed[0].postalCode;
+// 	return zip;
+// }
 
 module.exports = {
 	getSettings,
@@ -107,5 +141,6 @@ module.exports = {
 	logCounter,
 	getDateText,
 	format,
-	getAddressess
+	getAddresses,
+	isMatchPattern
 };
