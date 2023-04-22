@@ -2,17 +2,6 @@
 	"url": "https://stage.travis.prodigycad.com/",
 	"searhURl": "property-search",
 	"detailsUrl": "property-detail/{0}/{1}",
-	"addresses": [
-		{
-			"year": 2022,
-			"streetName": "Pointe View Dr"
-		},
-		{
-			"year": 2022,
-			"streetName": "9705 Zion Way"
-		}
-	],
-	"maxItems": 20,
-	"outputSeparateFiles": false,
-	"outputPath": "output/travis/"
+	"filePath": "files/TRAVIS COUNTY.xlsx",
+	"outputPath": "output/{0}_{1}.csv"
 }

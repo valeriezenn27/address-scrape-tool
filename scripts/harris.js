@@ -14,7 +14,7 @@ async function scrapeHarris(county) {
   const config = getSettings(county);
   const date = getDateText();
   const browser = await puppeteer.launch({
-    headless: false
+    headless: true
   });
   log(`Scraping started for URL : ${config.url}`, 'y');
   const page = await browser.newPage();
