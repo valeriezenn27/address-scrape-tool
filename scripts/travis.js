@@ -7,7 +7,8 @@ const {
   getDateText,
   format,
   getAddresses,
-  isMatchPattern
+  isMatchPattern,
+  getZip
 } = require('../helpers');
 
 async function scrapeTravis(county) {
@@ -52,22 +53,20 @@ async function scrapeTravis(county) {
           const mailingAddressElement = elements[2];
           const name = nameElement?.textContent || '';
           const mailingAddress = mailingAddressElement?.textContent || '';
-          if (name === '' && mailingAddress === '') {
-            return null;
-          }
           return {
             name,
-            mailingAddress,
+            mailingAddress
           };
         });
 
-        if (info !== null) {
-          info['address'] = address;
-          info['city'] = city;
-          info['zip'] = zip;
-          allData.push(info);
-          log(info);
-        }
+        const mailingAddressZip = getZip(info.mailingAddress);
+        info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '');
+        info['mailingAddressZip'] = mailingAddressZip
+        info['address'] = address;
+        info['city'] = city;
+        info['zip'] = zip;
+        allData.push(info);
+        log(info);
       }
 
     } catch (error) {

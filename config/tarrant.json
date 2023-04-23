@@ -1,11 +1,5 @@
 {
 	"url": "https://www.tad.org/property/search",
-	"addresses": [
-		"2478 FORT WORTH ST",
-		"Arlington",
-		"Watauga"
-	],
-	"maxItems": 20,
-	"outputSeparateFiles": false,
-	"outputPath": "output/tarrant/"
+	"filePath": "files/TARRANT COUNTY.xlsx",
+	"outputPath": "output/{0}_{1}.csv"
 }

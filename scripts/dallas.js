@@ -7,7 +7,8 @@ const {
   getDateText,
   format,
   getAddresses,
-  isMatchPattern
+  isMatchPattern,
+  getZip
 } = require('../helpers');
 
 async function scrapeDallas(county) {
@@ -131,6 +132,9 @@ async function scrapeDallas(county) {
           };
         });
 
+        const mailingAddressZip = getZip(info.mailingAddress);
+        info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '');
+        info['mailingAddressZip'] = mailingAddressZip
         info['address'] = address;
         info['city'] = city;
         info['zip'] = zip;
@@ -140,7 +144,7 @@ async function scrapeDallas(county) {
         // Close new tab
         await page.close();
       } else {
-        log('No results.')
+        log('No results.');
       }
     } catch (error) {
       log(error.message, 'r');

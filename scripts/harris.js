@@ -7,7 +7,8 @@ const {
   getDateText,
   format,
   getAddresses,
-  isMatchPattern
+  isMatchPattern,
+  getZip
 } = require('../helpers');
 
 async function scrapeHarris(county) {
@@ -46,7 +47,7 @@ async function scrapeHarris(county) {
         const streetNumber = pattern.streetNumber;
         let streetName = pattern.streetName;
         if (pattern.direction !== undefined) {
-          streetName = `${pattern.direction} ${pattern.streetName}`;
+          streetName = `${pattern.direction}${pattern.streetName}`;
         }
         // Input the address number
         await searchFormIframeContent.evaluate((selector) => {
@@ -71,27 +72,39 @@ async function scrapeHarris(county) {
 
         await page.waitForNetworkIdle();
         await page.waitForTimeout(1000); // wait for 1 second before continuing
+
         // Scrape data from record
         const info = await quickframe.evaluate(() => {
           const outerTable = document.querySelector('table .data th');
-          const tableData = outerTable.innerText.split('<br>');
-          const items = tableData[0].split('\n');
-          const name = items[0].trim();
-          const lastTwoNonEmpty = items.filter(str => str.trim() !== "").slice(-2);
-          const mailingAddress = `${lastTwoNonEmpty[0]} ${lastTwoNonEmpty[1]}`;
-          return {
-            name,
-            mailingAddress
-          };
+          if (outerTable) {
+            const tableData = outerTable.innerText.split('<br>');
+            const items = tableData[0].split('\n');
+            const name = items[0].trim();
+            const lastTwoNonEmpty = items.filter(str => str.trim() !== "").slice(-2);
+            const mailingAddress = `${lastTwoNonEmpty[0]} ${lastTwoNonEmpty[1]}`;
+            return {
+              name,
+              mailingAddress
+            };
+          } else {
+            return null;
+          }
         });
 
-        info['address'] = address;
-        info['city'] = city;
-        info['zip'] = zip;
-        allData.push(info);
-        log(info);
+        if (info !== null) {
+          const mailingAddressZip = getZip(info.mailingAddress);
+          info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '');
+          info['mailingAddressZip'] = mailingAddressZip
+          info['address'] = address;
+          info['city'] = city;
+          info['zip'] = zip;
+          allData.push(info);
+          log(info);
+        } else {
+          log('No results.');
+        }
       } else {
-        log('No results.')
+        log('No results.');
       }
     } catch (error) {
       log(error.message, 'r');

@@ -1,7 +1,6 @@
 const fs = require('fs');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const xlsx = require('xlsx');
-// const postal = require('node-postal');
 
 function getSettings(county) {
 	try {
@@ -32,6 +31,10 @@ async function exportCsv(path, data) {
 				{
 					"id": "mailingAddress",
 					"title": "OWNER MAILING ADDRESS"
+				},
+				{
+					"id": "mailingAddressZip",
+					"title": "OWNER MAILING ADDRESS ZIP"
 				}
 			]
 		});
@@ -128,11 +131,12 @@ function isMatchPattern(address, city) {
 	}
 }
 
-// function getZip(address) {
-// 	const parsed = postal.parseAddress(address);
-// 	const zip = parsed[0].postalCode;
-// 	return zip;
-// }
+function getZip(address) {
+	const regex = /(\d{5})(?:[-\s]*(\d{4}))?/;
+	const match = regex.exec(address);
+	const zip = match[0];
+	return zip;
+}
 
 module.exports = {
 	getSettings,
@@ -142,5 +146,6 @@ module.exports = {
 	getDateText,
 	format,
 	getAddresses,
-	isMatchPattern
+	isMatchPattern,
+	getZip
 };
