@@ -88,7 +88,7 @@ async function scrapeTarrant(county) {
         allData.push(info);
         log(info);
       } else {
-        log('No results.');
+        log('Result not found.', 'r');
       }
     } catch (error) {
       log(error.message, 'r');
@@ -99,6 +99,7 @@ async function scrapeTarrant(county) {
 
   if (allData.length > 0) {
     // Save and export to CSV file
+    log(`Total number from input data : ${addresses.length}`, 'y');
     log(`Total number of scraped data : ${allData.length}`, 'y')
     const fileName = format(config.outputPath, county, date)
     await exportCsv(fileName, allData);

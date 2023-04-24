@@ -16,14 +16,14 @@ async function scrapeTravis(county) {
   const date = getDateText();
   const url = `${config.url}${config.searhURl}`;
   const browser = await puppeteer.launch({
-    headless: true
+    headless: false
   });
   const page = await browser.newPage();
   log(`Scraping started for URL : ${url}`, 'y');
   const addresses = getAddresses(config.filePath);
   let allData = [];
   for (let i = 0; i < addresses.length; i++) {
-    await page.waitForTimeout(1000); // wait for 1 second before continuing
+    await page.waitForTimeout(500);
     const address = addresses[i]['STREET ADDRESS'].replace('#', '');
     const city = addresses[i]['CITY STATE'];
     const zip = addresses[i]['ZIP'];
@@ -42,11 +42,22 @@ async function scrapeTravis(county) {
       await page.click(searchButton);
       await page.waitForNetworkIdle();
       const containerSelector = '.ag-center-cols-container';
-      await page.waitForSelector(containerSelector);
       const rowSelector = containerSelector + ' div[role="row"]';
-      const resultsTable = await page.$(rowSelector);
-      if (resultsTable) {
-        await resultsTable.click();
+      const rows = await page.$$(rowSelector);
+      if (rows.length > 0) {
+        await page.evaluate((address) => {
+          const tds = document.querySelectorAll('.ag-center-cols-container div[role="row"] .ag-cell');
+          const tdWithAddress = Array.from(tds).find(td => td.textContent.trim().includes(address.toUpperCase()));
+          if (tdWithAddress) {
+            const tr = tdWithAddress.closest('div[role="row"]'); // navigate to the parent tr element
+            if (tr) {
+              tr.click();
+            }
+          } else {
+            console.log(`No cell found for address: ${address}`);
+          }
+        }, address);
+
         await page.waitForSelector('p.sc-cEvuZC.filVkB');
         const info = await page.$$eval('p.sc-cEvuZC.filVkB', (elements) => {
           const nameElement = elements[0];
@@ -67,8 +78,9 @@ async function scrapeTravis(county) {
         info['zip'] = zip;
         allData.push(info);
         log(info);
+      } else {
+        log('Result not found.', 'r');
       }
-
     } catch (error) {
       log(error.message, 'r');
       await page.waitForTimeout(10000); // wait for 10 second before continuing
@@ -78,6 +90,7 @@ async function scrapeTravis(county) {
 
   if (allData.length > 0) {
     // Save and export to CSV file
+    log(`Total number from input data : ${addresses.length}`, 'y');
     log(`Total number of scraped data : ${allData.length}`, 'y')
     const fileName = format(config.outputPath, county, date)
     await exportCsv(fileName, allData);
