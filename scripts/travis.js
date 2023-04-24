@@ -46,16 +46,23 @@ async function scrapeTravis(county) {
       const rows = await page.$$(rowSelector);
       if (rows.length > 0) {
         await page.evaluate((address) => {
-          const tds = document.querySelectorAll('.ag-center-cols-container div[role="row"] .ag-cell');
-          const tdWithAddress = Array.from(tds).find(td => td.textContent.trim().includes(address.toUpperCase()));
-          if (tdWithAddress) {
-            const tr = tdWithAddress.closest('div[role="row"]'); // navigate to the parent tr element
-            if (tr) {
-              tr.click();
-            }
-          } else {
-            console.log(`No cell found for address: ${address}`);
-          }
+          const tdElements = document.querySelectorAll('.ag-center-cols-container div[role="row"]');
+          tdElements.forEach((tdElement) => {
+            const aElements = tdElement.querySelectorAll('.ag-cell');
+            aElements.forEach((el) => {
+              const tdText = el.textContent;
+              const searchWords = address.split(" ");
+              let isMatch = true;
+              searchWords.forEach((word) => {
+                if (!tdText.toUpperCase().includes(word.toUpperCase())) {
+                  isMatch = false;
+                }
+              });
+              if (isMatch) {
+                el.click();
+              }
+            });
+          });
         }, address);
 
         await page.waitForSelector('p.sc-cEvuZC.filVkB');
