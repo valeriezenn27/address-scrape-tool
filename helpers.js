@@ -132,8 +132,10 @@ function isMatchPattern(address, city) {
 }
 
 function getZip(address) {
+	const removeNumbersRegex = /^[0-9]+/;
+	const stringWithoutNumbers = address.replace(removeNumbersRegex, "");
 	const regex = /(\d{5})(?:[-\s]*(\d{4}))?/;
-	const match = regex.exec(address);
+	const match = regex.exec(stringWithoutNumbers);
 	const zip = match[0];
 	return zip;
 }

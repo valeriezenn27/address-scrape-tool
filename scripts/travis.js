@@ -19,6 +19,9 @@ async function scrapeTravis(county) {
     headless: true
   });
   const page = await browser.newPage();
+  await page.goto(url, {
+    timeout: 120000
+  });
   log(`Scraping started for URL : ${url}`, 'y');
   const addresses = getAddresses(config.filePath);
   let allData = [];
@@ -30,12 +33,14 @@ async function scrapeTravis(county) {
     log(`Scraping for :`);
     log(`ADDRESS : ${address}`, 'y');
     try {
-      await page.goto(url, {
-        timeout: 120000
-      });
-      const searchInput = 'input#searchInput';
-      await page.waitForSelector(searchInput);
-      await page.type(searchInput, address); // Input the address number
+      const searchInputSelector = 'input#searchInput';
+      await page.waitForSelector(searchInputSelector);
+      const searchInput = await page.$(searchInputSelector); // Get the element reference
+      await searchInput.click({
+        clickCount: 3
+      }); // Select the existing text in the input
+      await searchInput.press('Backspace'); // Delete the existing text
+      await searchInput.type(address); // Type the new address
       await page.waitForTimeout(500); // wait for .5 second
       const searchButton = 'button.MuiButtonBase-root.MuiIconButton-root';
       // Click on the search button
@@ -44,52 +49,87 @@ async function scrapeTravis(county) {
       const containerSelector = '.ag-center-cols-container';
       const rowSelector = containerSelector + ' div[role="row"]';
       const rows = await page.$$(rowSelector);
-      if (rows.length > 0) {
-        await page.evaluate((address) => {
-          const tdElements = document.querySelectorAll('.ag-center-cols-container div[role="row"]');
-          tdElements.forEach((tdElement) => {
-            const aElements = tdElement.querySelectorAll('.ag-cell');
-            aElements.forEach((el) => {
-              const tdText = el.textContent;
-              const searchWords = address.split(" ");
-              let isMatch = true;
-              searchWords.forEach((word) => {
-                if (!tdText.toUpperCase().includes(word.toUpperCase())) {
-                  isMatch = false;
-                }
-              });
-              if (isMatch) {
-                el.click();
-              }
-            });
-          });
-        }, address);
+      let pidText = '';
+      if (rows.length > 1) {
+        for (const row of rows) {
+          // Find all cells in the row
+          const cells = await row.$$('.ag-cell');
+          // Initialize variables for matching string and matching cell
+          let matchingString = '';
+          let matchingCell = null;
+          const searchString = address.toUpperCase();
+          // Iterate over each cell in the row
+          for (const cell of cells) {
+            // Get the text content of the cell
+            const text = await cell.evaluate(node => node.textContent.trim());
+            // Check if the text content matches the search string
+            if (text.includes(searchString) && text.length > matchingString.length) {
+              // Update the matching string and matching cell
+              matchingString = text;
+              matchingCell = cell;
+              break;
+            }
+          }
+          // If a matching cell was found, get the text content of the 'pid' column for that row
+          if (matchingCell) {
+            pidText = await row.$eval('div[col-id="pid"]', a => a.textContent);
+          }
+        }
+      } else {
+        pidText = await rows[0].$eval('div[col-id="pid"]', a => a.textContent);
+      }
 
-        await page.waitForSelector('p.sc-cEvuZC.filVkB');
-        const info = await page.$$eval('p.sc-cEvuZC.filVkB', (elements) => {
-          const nameElement = elements[0];
-          const mailingAddressElement = elements[2];
-          const name = nameElement?.textContent || '';
-          const mailingAddress = mailingAddressElement?.textContent || '';
+      if (pidText !== '') {
+        const href = format(`${config.url}${config.detailsUrl}`, pidText);
+        const tabPage = await browser.newPage();
+        // Open in new tab
+        await tabPage.goto(href, {
+          timeout: 60000
+        });
+        await tabPage.waitForNetworkIdle();
+        await tabPage.waitForFunction(() => {
+          const selector = 'p.sc-cEvuZC.filVkB';
+          const elements = document.querySelectorAll(selector);
+          if (elements.length === 0) {
+            return false;
+          }
+          const element = elements[0];
+          return element.textContent.trim() !== '';
+        }, {
+          timeout: 30000
+        });
+        // Scrape data from record
+        const info = await tabPage.evaluate(() => {
+          const items = document.querySelectorAll('p.sc-cEvuZC.filVkB');
+          const name = items[0].textContent.trim();
+          const mailingAddress = items[2].textContent.trim();
+          if (name === '' && mailingAddress === '') {
+            return null;
+          }
           return {
             name,
             mailingAddress
           };
         });
 
-        const mailingAddressZip = getZip(info.mailingAddress);
-        info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '').trim();;
-        info['mailingAddressZip'] = mailingAddressZip
-        info['address'] = address;
-        info['city'] = city;
-        info['zip'] = zip;
-        allData.push(info);
-        log(info);
+        if (info !== null) {
+          const mailingAddressZip = getZip(info.mailingAddress);
+          info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '').trim();;
+          info['mailingAddressZip'] = mailingAddressZip
+          info['address'] = address;
+          info['city'] = city;
+          info['zip'] = zip;
+          allData.push(info);
+          log(info);
+        }
+
+        await tabPage.close();
       } else {
         log('Result not found.', 'r');
       }
     } catch (error) {
-      log(error.message, 'r');
+      console.error(error);
+      // log(error.message, 'r');
       await page.waitForTimeout(10000); // wait for 10 second before continuing
       continue;
     }
