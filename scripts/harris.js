@@ -93,7 +93,7 @@ async function scrapeHarris(county) {
 
         if (info !== null) {
           const mailingAddressZip = getZip(info.mailingAddress);
-          info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '');
+          info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '').trim();
           info['mailingAddressZip'] = mailingAddressZip
           info['address'] = address;
           info['city'] = city;

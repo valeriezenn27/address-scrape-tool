@@ -16,7 +16,7 @@ async function scrapeTravis(county) {
   const date = getDateText();
   const url = `${config.url}${config.searhURl}`;
   const browser = await puppeteer.launch({
-    headless: false
+    headless: true
   });
   const page = await browser.newPage();
   log(`Scraping started for URL : ${url}`, 'y');
@@ -71,7 +71,7 @@ async function scrapeTravis(county) {
         });
 
         const mailingAddressZip = getZip(info.mailingAddress);
-        info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '');
+        info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '').trim();;
         info['mailingAddressZip'] = mailingAddressZip
         info['address'] = address;
         info['city'] = city;
