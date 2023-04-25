@@ -8,7 +8,8 @@ const {
   format,
   getAddresses,
   isMatchPattern,
-  getZip
+  getZip,
+  toProperCase
 } = require('../helpers');
 
 async function scrapeHarris(county) {
@@ -93,8 +94,9 @@ async function scrapeHarris(county) {
 
         if (info !== null) {
           const mailingAddressZip = getZip(info.mailingAddress);
-          info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '').trim();
-          info['mailingAddressZip'] = mailingAddressZip
+          info['name'] = toProperCase(info.name);
+          info['mailingAddress'] = toProperCase(info.mailingAddress.replace(mailingAddressZip, '').trim());
+          info['mailingAddressZip'] = mailingAddressZip;
           info['address'] = address;
           info['city'] = city;
           info['zip'] = zip;

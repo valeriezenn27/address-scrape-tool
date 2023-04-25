@@ -8,7 +8,8 @@ const {
   format,
   getAddresses,
   isMatchPattern,
-  getZip
+  getZip,
+  toProperCase
 } = require('../helpers');
 
 async function scrapeDallas(county) {
@@ -123,7 +124,7 @@ async function scrapeDallas(county) {
         // Scrape data from record
         const info = await page.evaluate(() => {
           const spanElement = document.querySelector('#lblOwner');
-          const name = spanElement.nextSibling.textContent;
+          const name = spanElement.nextSibling.textContent.replace(/&$/, '').trim();
           const element = document.querySelector('a[name="MultiOwner"]');
           const mailingAddress = `${element.previousElementSibling.previousElementSibling.previousSibling.textContent} ${element.previousElementSibling.previousSibling.textContent.replace(/\n/g, '').trim()}`;
           return {
@@ -133,8 +134,9 @@ async function scrapeDallas(county) {
         });
 
         const mailingAddressZip = getZip(info.mailingAddress);
-        info['mailingAddress'] = info.mailingAddress.replace(mailingAddressZip, '').trim();
-        info['mailingAddressZip'] = mailingAddressZip
+        info['name'] = toProperCase(info.name);
+        info['mailingAddress'] = toProperCase(info.mailingAddress.replace(mailingAddressZip.replace('-', ''), '').trim());
+        info['mailingAddressZip'] = mailingAddressZip;
         info['address'] = address;
         info['city'] = city;
         info['zip'] = zip;

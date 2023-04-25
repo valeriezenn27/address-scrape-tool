@@ -134,10 +134,22 @@ function isMatchPattern(address, city) {
 function getZip(address) {
 	const removeNumbersRegex = /^[0-9]+/;
 	const stringWithoutNumbers = address.replace(removeNumbersRegex, "");
-	const regex = /(\d{5})(?:[-\s]*(\d{4}))?/;
+	const regex = /(\d{5})([-\s]*(\d{4}))?/;
 	const match = regex.exec(stringWithoutNumbers);
-	const zip = match[0];
-	return zip;
+	let zip = match[1] + (match[3] ? "-" + match[3] : "");
+
+	// Check if the zip code already has the correct format
+	if (zip.length === 10 && zip.charAt(5) === "-") {
+		return zip;
+	} else {
+		return match[0];
+	}
+}
+
+function toProperCase(str) {
+	const words = str.split(/\s+/);
+	const properCase = words.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+	return properCase;
 }
 
 module.exports = {
@@ -149,5 +161,6 @@ module.exports = {
 	format,
 	getAddresses,
 	isMatchPattern,
-	getZip
+	getZip,
+	toProperCase
 };
