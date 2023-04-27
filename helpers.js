@@ -1,6 +1,8 @@
 const fs = require('fs');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const xlsx = require('xlsx');
+const usStateCodes = require('us-state-codes');
+const parseAddress = require('parse-address');
 
 function getSettings(county) {
 	try {
@@ -33,8 +35,12 @@ async function exportCsv(path, data) {
 					"title": "OWNER MAILING ADDRESS"
 				},
 				{
-					"id": "mailingAddressZip",
-					"title": "OWNER MAILING ADDRESS ZIP"
+					"id": "mailingCityState",
+					"title": "OWNER MAILING CITY STATE"
+				},
+				{
+					"id": "mailingZip",
+					"title": "OWNER MAILING ZIP"
 				}
 			]
 		});
@@ -152,6 +158,45 @@ function toProperCase(str) {
 	return properCase;
 }
 
+function toTitleCase(str) {
+	return str.replace(/\w\S*/g, function (txt) {
+		return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+	});
+}
+
+function processAddress(input) {
+	const parsed = parseAddress.parseLocation(input);
+
+	if (parsed) {
+		const address = `${parsed.sec_unit_type ? toTitleCase(parsed.sec_unit_type) : ''}${parsed.sec_unit_num ? ' ' + parsed.sec_unit_num : ''}${parsed.number && parsed.street && parsed.type ? ', ' + parsed.number + ' ' + toTitleCase(parsed.street) + ' ' + toTitleCase(parsed.type) : ''}`;
+		const city = toTitleCase(parsed.city);
+		const state = parsed.state;
+		const zip = parsed.zip + (parsed.plus4 ? `-${parsed.plus4}` : '');
+		const cityState = `${city}, ${state}`;
+
+		return {
+			address,
+			cityState,
+			zip,
+		};
+	} else {
+		throw new Error('Invalid address format');
+	}
+}
+
+function getChromiumPath() {
+	switch (process.platform) {
+		case 'win32':
+			return 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe';
+		case 'linux':
+			return '/usr/bin/google-chrome';
+		case 'darwin':
+			return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+		default:
+			throw new Error(`Unsupported platform: ${process.platform}`);
+	}
+}
+
 module.exports = {
 	getSettings,
 	exportCsv,
@@ -162,5 +207,7 @@ module.exports = {
 	getAddresses,
 	isMatchPattern,
 	getZip,
-	toProperCase
+	toProperCase,
+	processAddress,
+	getChromiumPath
 };

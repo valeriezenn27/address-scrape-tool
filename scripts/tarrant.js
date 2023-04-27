@@ -9,14 +9,18 @@ const {
   getAddresses,
   isMatchPattern,
   getZip,
-  toProperCase
+  toProperCase,
+  processAddress,
+  getChromiumPath
 } = require('../helpers');
 
 async function scrapeTarrant(county) {
   const config = getSettings(county);
   const date = getDateText();
+  const chromiumPath = getChromiumPath();
   const browser = await puppeteer.launch({
-    headless: false
+    headless: true,
+    executablePath: chromiumPath,
   });
   const page = await browser.newPage();
   await page.goto(config.url, {
@@ -25,7 +29,6 @@ async function scrapeTarrant(county) {
   log(`Scraping started for URL : ${config.url}`, 'y');
   const addresses = getAddresses(config.filePath);
   let allData = [];
-  const RETRY_TIMEOUT = 30000; // retry timeout in milliseconds
   for (let i = 0; i < addresses.length; i++) {
     const address = addresses[i]['STREET ADDRESS'];
     const addressParts = address.split('#');
@@ -34,9 +37,13 @@ async function scrapeTarrant(county) {
     const zip = addresses[i]['ZIP'];
     log(`Scraping for :`);
     log(`ADDRESS : ${address}`, 'y');
-    let retryCount = 0; // initialize retry count to 0
-    while (retryCount < 3) { // retry up to 3 times
+
+    let success = false;
+    let attempts = 0;
+    const maxAttempts = 3; // Set the maximum number of attempts here
+    while (!success && attempts < maxAttempts) {
       try {
+        attempts++;
         await page.select('select[name="search_string_type"]', 'property_address');
         // Input the address
         const inputSelector = 'input[name="search_string"]';
@@ -90,24 +97,35 @@ async function scrapeTarrant(county) {
             };
           });
 
-          info['name'] = toProperCase(info.name);
-          info['mailingAddress'] = toProperCase(info.mailingAddress.trim())
-          info['address'] = address;
-          info['city'] = city;
-          info['zip'] = zip;
-          allData.push(info);
-          log(info);
+          const name = toProperCase(info.name);
+          const result = processAddress(info.mailingAddress);
+          const mailingAddress = result.address;
+          const mailingCityState = result.cityState;
+          const mailingZip = info.mailingAddressZip;
+          const data = {
+            address,
+            city,
+            zip,
+            name,
+            mailingAddress,
+            mailingCityState,
+            mailingZip
+          };
+          allData.push(data);
+          log(data);
         } else {
           log('Result not found.', 'r');
         }
+
+        success = true;
       } catch (error) {
-        log(error.message, 'r');
-        retryCount++;
-        if (retryCount < 3) {
-          log(`retrying in ${RETRY_TIMEOUT / 1000} seconds...`, 'r');
+        log(error.message);
+        if (attempts < maxAttempts) {
+          const RETRY_TIMEOUT = 5000; // retry timeout in 5s
+          log(`retrying in ${RETRY_TIMEOUT / 1000} seconds...`);
           await page.waitForTimeout(RETRY_TIMEOUT);
         } else {
-          log(`Maximum retries exceeded for address: ${address}`, 'r');
+          log(error.message, 'r');
         }
       }
     }

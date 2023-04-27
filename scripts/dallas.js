@@ -9,21 +9,25 @@ const {
   getAddresses,
   isMatchPattern,
   getZip,
-  toProperCase
+  toProperCase,
+  processAddress,
+  getChromiumPath
 } = require('../helpers');
 
 async function scrapeDallas(county) {
   const config = getSettings(county);
   const date = getDateText();
+  const chromiumPath = getChromiumPath();
   const browser = await puppeteer.launch({
-    headless: true
+    headless: true,
+    executablePath: chromiumPath,
   });
   log(`Scraping started for URL : ${config.url}`, 'y');
   const addresses = getAddresses(config.filePath);
   let allData = [];
   for (let i = 0; i < addresses.length; i++) {
     const page = await browser.newPage();
-    await page.waitForTimeout(1000); // wait for 1 second before continuing
+    await page.waitForTimeout(500); // wait for 1 second before continuing
     const address = addresses[i]['STREET ADDRESS'].replace('#', '');
     const city = addresses[i]['CITY STATE'];
     const zip = addresses[i]['ZIP'];
@@ -133,15 +137,22 @@ async function scrapeDallas(county) {
           };
         });
 
-        const mailingAddressZip = getZip(info.mailingAddress);
-        info['name'] = toProperCase(info.name);
-        info['mailingAddress'] = toProperCase(info.mailingAddress.replace(mailingAddressZip.replace('-', ''), '').trim());
-        info['mailingAddressZip'] = mailingAddressZip;
-        info['address'] = address;
-        info['city'] = city;
-        info['zip'] = zip;
-        allData.push(info);
-        log(info);
+        const name = toProperCase(info.name);
+        const result = processAddress(info.mailingAddress);
+        const mailingAddress = result.address;
+        const mailingCityState = result.cityState;
+        const mailingZip = result.zip;
+        const data = {
+          address,
+          city,
+          zip,
+          name,
+          mailingAddress,
+          mailingCityState,
+          mailingZip
+        };
+        allData.push(data);
+        log(data);
 
         // Close new tab
         await page.close();

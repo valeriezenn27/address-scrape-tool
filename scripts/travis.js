@@ -9,15 +9,19 @@ const {
   getAddresses,
   isMatchPattern,
   getZip,
-  toProperCase
+  toProperCase,
+  processAddress,
+  getChromiumPath
 } = require('../helpers');
 
 async function scrapeTravis(county) {
   const config = getSettings(county);
   const date = getDateText();
   const url = `${config.url}${config.searhURl}`;
+  const chromiumPath = getChromiumPath();
   const browser = await puppeteer.launch({
-    headless: true
+    headless: true,
+    executablePath: chromiumPath
   });
   const page = await browser.newPage();
   await page.goto(url, {
@@ -27,114 +31,108 @@ async function scrapeTravis(county) {
   const addresses = getAddresses(config.filePath);
   let allData = [];
   for (let i = 0; i < addresses.length; i++) {
-    await page.waitForTimeout(500);
     const address = addresses[i]['STREET ADDRESS'].replace('#', '');
     const city = addresses[i]['CITY STATE'];
     const zip = addresses[i]['ZIP'];
     log(`Scraping for :`);
     log(`ADDRESS : ${address}`, 'y');
-    try {
-      const searchInputSelector = 'input#searchInput';
-      await page.waitForSelector(searchInputSelector);
-      const searchInput = await page.$(searchInputSelector); // Get the element reference
-      await searchInput.click({
-        clickCount: 3
-      }); // Select the existing text in the input
-      await searchInput.press('Backspace'); // Delete the existing text
-      await searchInput.type(address); // Type the new address
-      await page.waitForTimeout(500); // wait for .5 second
-      const searchButton = 'button.MuiButtonBase-root.MuiIconButton-root';
-      // Click on the search button
-      await page.click(searchButton);
-      await page.waitForNetworkIdle();
-      const containerSelector = '.ag-center-cols-container';
-      const rowSelector = containerSelector + ' div[role="row"]';
-      const rows = await page.$$(rowSelector);
-      let pidText = '';
-      if (rows.length > 1) {
-        for (const row of rows) {
-          // Find all cells in the row
-          const cells = await row.$$('.ag-cell');
-          // Initialize variables for matching string and matching cell
-          let matchingString = '';
-          let matchingCell = null;
-          const searchString = address.toUpperCase();
-          // Iterate over each cell in the row
-          for (const cell of cells) {
-            // Get the text content of the cell
-            const text = await cell.evaluate(node => node.textContent.trim());
-            // Check if the text content matches the search string
-            if (text.includes(searchString) && text.length > matchingString.length) {
-              // Update the matching string and matching cell
-              matchingString = text;
-              matchingCell = cell;
-              break;
+    let success = false;
+    let attempts = 0;
+    const maxAttempts = 3; // Set the maximum number of attempts here
+    while (!success && attempts < maxAttempts) {
+      try {
+        attempts++;
+        const searchInputSelector = 'input#searchInput';
+        await page.waitForSelector(searchInputSelector);
+        const searchInput = await page.$(searchInputSelector); // Get the element reference
+        await searchInput.click({
+          clickCount: 3
+        }); // Select the existing text in the input
+        await searchInput.press('Backspace'); // Delete the existing text
+        await searchInput.type(address); // Type the new address
+        await page.waitForTimeout(100);
+        const searchButton = 'button.MuiButtonBase-root.MuiIconButton-root';
+        // Click on the search button
+        await page.click(searchButton);
+        await page.waitForFunction(() => {
+          const elements = document.querySelectorAll('[style]');
+          for (const element of elements) {
+            if (element.getAttribute('style').includes('MuiCircularProgress')) {
+              return false;
             }
           }
-          // If a matching cell was found, get the text content of the 'pid' column for that row
-          if (matchingCell) {
-            pidText = await row.$eval('div[col-id="pid"]', a => a.textContent);
+          return true;
+        });
+        await page.waitForNetworkIdle();
+        await page.waitForTimeout(500);
+        await page.waitForSelector('div[col-id="pid"]');
+
+        const containerSelector = '.ag-center-cols-container';
+        const rowSelector = containerSelector + ' div[role="row"]';
+        const rows = await page.$$(rowSelector);
+        if (rows.length === 1) {
+          await rows[0].click();
+          await page.waitForNetworkIdle();
+          await page.waitForTimeout(500);
+          await page.waitForSelector('#mapContainer');
+          // Scrape data from record
+          const info = await page.evaluate(() => {
+            const items = document.querySelectorAll('p.sc-cEvuZC.filVkB');
+            const name = items[0].textContent.trim();
+            const mailingAddress = items[2].textContent.trim();
+            if (name === '' && mailingAddress === '') {
+              return null;
+            }
+            return {
+              name,
+              mailingAddress
+            };
+          });
+
+          if (info !== null) {
+            const name = toProperCase(info.name);
+            const result = processAddress(info.mailingAddress);
+            const mailingAddress = result.address;
+            const mailingCityState = result.cityState;
+            const mailingZip = result.zip;
+            const data = {
+              address,
+              city,
+              zip,
+              name,
+              mailingAddress,
+              mailingCityState,
+              mailingZip
+            };
+            allData.push(data);
+            log(data);
+
+            const element = await page.$('.MuiBreadcrumbs-li');
+            if (element) {
+              await element.click();
+            } else {
+              console.log('Element with class ".MuiBreadcrumbs-li" not found.');
+            }
           }
+        } else {
+          log('Multiple/no results found.', 'r');
         }
-      } else {
-        pidText = await rows[0].$eval('div[col-id="pid"]', a => a.textContent);
-      }
-
-      if (pidText !== '') {
-        const href = format(`${config.url}${config.detailsUrl}`, pidText);
-        const tabPage = await browser.newPage();
-        // Open in new tab
-        await tabPage.goto(href, {
-          timeout: 60000
-        });
-        await tabPage.waitForNetworkIdle();
-        await tabPage.waitForFunction(() => {
-          const selector = 'p.sc-cEvuZC.filVkB';
-          const elements = document.querySelectorAll(selector);
-          if (elements.length === 0) {
-            return false;
-          }
-          const element = elements[0];
-          return element.textContent.trim() !== '';
-        }, {
-          timeout: 30000
-        });
-        // Scrape data from record
-        const info = await tabPage.evaluate(() => {
-          const items = document.querySelectorAll('p.sc-cEvuZC.filVkB');
-          const name = items[0].textContent.trim();
-          const mailingAddress = items[2].textContent.trim();
-          if (name === '' && mailingAddress === '') {
-            return null;
-          }
-          return {
-            name,
-            mailingAddress
-          };
-        });
-
-        if (info !== null) {
-          const mailingAddressZip = getZip(info.mailingAddress);
-          info['name'] = toProperCase(info.name);
-          info['mailingAddress'] = toProperCase(info.mailingAddress.replace(mailingAddressZip, '').trim());
-          info['mailingAddressZip'] = mailingAddressZip;
-          info['address'] = address;
-          info['city'] = city;
-          info['zip'] = zip;
-          allData.push(info);
-          log(info);
+        success = true;
+      } catch (error) {
+        log(error.message);
+        if (attempts < maxAttempts) {
+          const RETRY_TIMEOUT = 5000; // retry timeout in 5s
+          log(`retrying in ${RETRY_TIMEOUT / 1000} seconds...`);
+          await page.waitForTimeout(RETRY_TIMEOUT);
+          await page.goto(url, {
+            timeout: 120000
+          });
+        } else {
+          log(error.message, 'r');
         }
-
-        await tabPage.close();
-      } else {
-        log('Result not found.', 'r');
       }
-    } catch (error) {
-      console.error(error);
-      // log(error.message, 'r');
-      await page.waitForTimeout(10000); // wait for 10 second before continuing
-      continue;
     }
+
   }
 
   if (allData.length > 0) {

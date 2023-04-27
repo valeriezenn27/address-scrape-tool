@@ -11,7 +11,9 @@
   "dependencies": {
     "csv-writer": "^1.6.0",
     "fs": "^0.0.1-security",
+    "parse-address": "^1.1.2",
     "puppeteer": "^19.8.5",
+    "us-state-codes": "^1.1.2",
     "xlsx": "^0.18.5"
   }
 }
