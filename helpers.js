@@ -165,10 +165,36 @@ function toTitleCase(str) {
 }
 
 function processAddress(input) {
+	input = input.replace(/(\s|^)US(\s|$)/, ' ').replace(/(\s|^)USA(\s|$)/, ' ').trim();
 	const parsed = parseAddress.parseLocation(input);
 
 	if (parsed) {
-		const address = `${parsed.sec_unit_type ? toTitleCase(parsed.sec_unit_type) : ''}${parsed.sec_unit_num ? ' ' + parsed.sec_unit_num : ''}${parsed.number && parsed.street && parsed.type ? ', ' + parsed.number + ' ' + toTitleCase(parsed.street) + ' ' + toTitleCase(parsed.type) : ''}`;
+		let address = '';
+
+		if (parsed.number) {
+			address += parsed.number;
+		}
+
+		if (parsed.prefix) {
+			address += (address ? ' ' : '') + toTitleCase(parsed.prefix);
+		}
+
+		if (parsed.street) {
+			address += (address ? ' ' : '') + toTitleCase(parsed.street);
+		}
+
+		if (parsed.type) {
+			address += (address ? ' ' : '') + toTitleCase(parsed.type);
+		}
+
+		if (parsed.sec_unit_type) {
+			address += (address ? ', ' : '') + toTitleCase(parsed.sec_unit_type);
+		}
+
+		if (parsed.sec_unit_num) {
+			address += (address ? ' ' : '') + parsed.sec_unit_num;
+		}
+
 		const city = toTitleCase(parsed.city);
 		const state = parsed.state;
 		const zip = parsed.zip + (parsed.plus4 ? `-${parsed.plus4}` : '');

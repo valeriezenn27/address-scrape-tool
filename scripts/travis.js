@@ -47,10 +47,23 @@ async function scrapeTravis(county) {
         const searchInput = await page.$(searchInputSelector); // Get the element reference
         await searchInput.click({
           clickCount: 3
-        }); // Select the existing text in the input
+        });
         await searchInput.press('Backspace'); // Delete the existing text
         await searchInput.type(address); // Type the new address
-        await page.waitForTimeout(100);
+        // Find the dropdown button and click it
+        const dropdownButton = await page.$('.sc-RefOD.iammZP > div:nth-child(3) .MuiSelect-root.MuiSelect-select.MuiSelect-selectMenu.MuiInputBase-input.MuiInput-input');
+        await page.waitForTimeout(500); // wait for 1 second
+        await dropdownButton.click();
+        // Find the dropdown items and click the desired item
+        const dropdownItems = await page.$$('.MuiButtonBase-root.MuiListItem-root.MuiMenuItem-root.MuiMenuItem-gutters.MuiListItem-gutters.MuiListItem-button');
+        for (const item of dropdownItems) {
+          const text = await item.evaluate((el) => el.textContent.trim());
+          if (text === config.year) {
+            await page.waitForTimeout(100); // wait for 1 second
+            await item.click();
+          }
+        }
+        await page.waitForTimeout(500);
         const searchButton = 'button.MuiButtonBase-root.MuiIconButton-root';
         // Click on the search button
         await page.click(searchButton);
@@ -64,7 +77,7 @@ async function scrapeTravis(county) {
           return true;
         });
         await page.waitForNetworkIdle();
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(100);
         await page.waitForSelector('div[col-id="pid"]');
 
         const containerSelector = '.ag-center-cols-container';
@@ -73,11 +86,11 @@ async function scrapeTravis(county) {
         if (rows.length === 1) {
           await rows[0].click();
           await page.waitForNetworkIdle();
-          await page.waitForTimeout(500);
-          await page.waitForSelector('#mapContainer');
+          const selector = '.sc-iybRtq.fTmVpm p.sc-cEvuZC.filVkB';
+          await page.waitForSelector(selector);
           // Scrape data from record
-          const info = await page.evaluate(() => {
-            const items = document.querySelectorAll('p.sc-cEvuZC.filVkB');
+          const info = await page.evaluate((selector) => {
+            const items = document.querySelectorAll(selector);
             const name = items[0].textContent.trim();
             const mailingAddress = items[2].textContent.trim();
             if (name === '' && mailingAddress === '') {
@@ -87,7 +100,7 @@ async function scrapeTravis(county) {
               name,
               mailingAddress
             };
-          });
+          }, selector);
 
           if (info !== null) {
             const name = toProperCase(info.name);
@@ -107,6 +120,7 @@ async function scrapeTravis(county) {
             allData.push(data);
             log(data);
 
+            await page.waitForTimeout(200);
             const element = await page.$('.MuiBreadcrumbs-li');
             if (element) {
               await element.click();
@@ -132,7 +146,6 @@ async function scrapeTravis(county) {
         }
       }
     }
-
   }
 
   if (allData.length > 0) {
